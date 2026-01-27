@@ -1,39 +1,34 @@
-import type {
-	FullConfig,
-	FullResult,
-	Reporter,
-	Suite,
-	TestCase,
-	TestError,
-	TestResult,
-	TestStep
-} from '@playwright/test/reporter';
-import type { Inputs } from './inputs';
+/**
+ * @import { Inputs } from '../routes/update/[repository]/inputs';
+ * @import * as PW from '@playwright/test/reporter';
+ * @typedef {Inputs['begin']['run']} RunData
+ */
 
-type RunData = Inputs['begin']['run'];
+/**
+ * @implements {PW.Reporter}
+ */
+export default class Pleye {
+	/** @type {string} */
+	#apiKey;
+	/** @type {string} */
+	#serverOrigin;
+	/** @type {number} */
+	#repositoryGitHubId;
+	/** @type {RunData} */
+	#runData;
 
-export default class Pleye implements Reporter {
-	#apiKey: string;
-	#serverOrigin: string;
-	#repositoryGitHubId: number;
-	#runData: RunData;
-
-	constructor(params: {
-		/** API Key to use */
-		apiKey: string;
-		/** Origin of the Pleye server, e.g. https://pleye.example.com */
-		serverOrigin: string;
-		/** Github ID of the current repository */
-		repositoryGitHubId: number;
-		/** ID of the current GitHub job we're on */
-		githubJobId: number;
-		/** Current commit SHA */
-		commitSha: string;
-		/** Current branch name */
-		branch: string;
-		/** Pull request number, if any */
-		pullRequestNumber?: number | undefined | null;
-	}) {
+	/**
+	 *
+	 * @param {object} params
+	 * @param {string} params.apiKey API Key to use
+	 * @param {string} params.serverOrigin Origin of the Pleye server, e.g. https://pleye.example.com
+	 * @param {number} params.repositoryGitHubId Github ID of the current repository
+	 * @param {number} params.githubJobId ID of the current GitHub job we're on
+	 * @param {string} params.commitSha Current commit SHA
+	 * @param {string} params.branch Current branch name
+	 * @param {number | undefined | null} [params.pullRequestNumber] Pull request number, if any
+	 */
+	constructor(params) {
 		const { apiKey, serverOrigin, repositoryGitHubId, ...runData } = params;
 		this.#apiKey = apiKey;
 		this.#serverOrigin = serverOrigin;
@@ -44,7 +39,12 @@ export default class Pleye implements Reporter {
 		};
 	}
 
-	onBegin(config: FullConfig, suite: Suite): void {
+	/**
+	 *
+	 * @param {PW.FullConfig} config
+	 * @param {PW.Suite} suite
+	 */
+	onBegin(config, suite) {
 		this.#sendPayload('begin', {
 			run: this.#runData,
 			projects: config.projects.map((project) => ({
@@ -56,7 +56,10 @@ export default class Pleye implements Reporter {
 		});
 	}
 
-	onEnd(result: FullResult): Promise<{ status?: FullResult['status'] } | undefined | void> | void {
+	/**
+	 * @param {PW.FullResult} result
+	 */
+	onEnd(result) {
 		this.#sendPayload('end', {
 			status: 'completed',
 			completedAt: new Date(),
@@ -65,21 +68,16 @@ export default class Pleye implements Reporter {
 		});
 	}
 
-	onError(error: TestError): void {
-		// TODO
-	}
+	// TODO: onError, onExit
 
-	async onExit(): Promise<void> {}
-
-	onStdErr(chunk: string | Buffer, test: void | TestCase, result: void | TestResult): void {
-		// TODO
-	}
-
-	onStdOut(chunk: string | Buffer, test: void | TestCase, result: void | TestResult): void {
-		// TODO
-	}
-
-	onStepBegin(test: TestCase, result: TestResult, step: TestStep): void {
+	/**
+	 *
+	 * @param {PW.TestCase} test
+	 * @param {PW.TestResult} result
+	 * @param {PW.TestStep} step
+	 * @returns
+	 */
+	onStepBegin(test, result, step) {
 		if (step.steps.length > 0) {
 			// We only care about "true" steps
 			return;
@@ -101,7 +99,13 @@ export default class Pleye implements Reporter {
 		});
 	}
 
-	onStepEnd(test: TestCase, result: TestResult, step: TestStep): void {
+	/**
+	 *
+	 * @param {PW.TestCase} test
+	 * @param {PW.TestResult} result
+	 * @param {PW.TestStep} step
+	 */
+	onStepEnd(test, result, step) {
 		this.#sendPayload('step-end', {
 			githubJobId: this.#runData.githubJobId,
 			test: titlepathToTestParams(test.titlePath()),
@@ -111,7 +115,12 @@ export default class Pleye implements Reporter {
 		});
 	}
 
-	onTestBegin(test: TestCase, result: TestResult): void {
+	/**
+	 *
+	 * @param {PW.TestCase} test
+	 * @param {PW.TestResult} result
+	 */
+	onTestBegin(test, result) {
 		const { title, path } = titlepathToTestParams(test.titlePath());
 
 		const project = test.parent?.project();
@@ -139,7 +148,12 @@ export default class Pleye implements Reporter {
 		});
 	}
 
-	onTestEnd(test: TestCase, result: TestResult): void {
+	/**
+	 *
+	 * @param {PW.TestCase} test
+	 * @param {PW.TestResult} result
+	 */
+	onTestEnd(test, result) {
 		this.#sendPayload('test-end', {
 			githubJobId: this.#runData.githubJobId,
 			test: titlepathToTestParams(test.titlePath()),
@@ -158,7 +172,13 @@ export default class Pleye implements Reporter {
 		});
 	}
 
-	#sendPayload<Event extends keyof Inputs>(event: Event, payload: Inputs[Event]): void {
+	/**
+	 *
+	 * @template {keyof Inputs} Event
+	 * @param {Event} event
+	 * @param {Inputs[Event]} payload
+	 */
+	#sendPayload(event, payload) {
 		void fetch(`${this.#serverOrigin}/update/${this.#repositoryGitHubId}/${event}`, {
 			method: 'POST',
 			headers: {
@@ -170,11 +190,21 @@ export default class Pleye implements Reporter {
 	}
 }
 
-function toArray<T>(item: T | T[]): T[] {
+/**
+ * @template T
+ * @param {T | T[]} item
+ * @returns {T[]}
+ */
+function toArray(item) {
 	return Array.isArray(item) ? item : [item];
 }
 
-function toStepCategory(category: string): Inputs['step-begin']['step']['category'] {
+/**
+ *
+ * @param {string} category
+ * @returns {Inputs['step-begin']['step']['category']}
+ */
+function toStepCategory(category) {
 	switch (category) {
 		case 'expect':
 			return 'expect';
@@ -193,7 +223,12 @@ function toStepCategory(category: string): Inputs['step-begin']['step']['categor
 	}
 }
 
-function toISOInterval(durationMs: number): string {
+/**
+ *
+ * @param {number} durationMs
+ * @returns {string}
+ */
+function toISOInterval(durationMs) {
 	const totalSeconds = Math.floor(durationMs / 1000);
 	const hours = Math.floor(totalSeconds / 3600);
 	const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -203,7 +238,12 @@ function toISOInterval(durationMs: number): string {
 	return `PT${hours}H${minutes}M${seconds}.${milliseconds.toString().padStart(3, '0')}S`;
 }
 
-function toError(error: TestError): NonNullable<Inputs['step-end']['error']> {
+/**
+ *
+ * @param {PW.TestError} error
+ * @returns {NonNullable<Inputs['step-end']['error']>}
+ */
+function toError(error) {
 	const { location, message, stack } = climbToCauseError(error);
 	return {
 		filePath: location?.file ?? null,
@@ -213,11 +253,21 @@ function toError(error: TestError): NonNullable<Inputs['step-end']['error']> {
 	};
 }
 
-function bufferToText(writes: Array<string | Buffer>): string {
+/**
+ *
+ * @param {Array<string | Buffer>} writes
+ * @returns {string}
+ */
+function bufferToText(writes) {
 	return writes.map((chunk) => (Buffer.isBuffer(chunk) ? chunk.toString('utf-8') : chunk)).join('');
 }
 
-function climbToCauseError(error: TestError): TestError {
+/**
+ *
+ * @param {PW.TestError} error
+ * @returns {PW.TestError}
+ */
+function climbToCauseError(error) {
 	if (error.cause) {
 		return climbToCauseError(error.cause);
 	}
@@ -225,7 +275,12 @@ function climbToCauseError(error: TestError): TestError {
 	return error;
 }
 
-function titlepathToTestParams(titlePath: string[]): { title: string; path: string[] } {
+/**
+ *
+ * @param {string[]} titlePath
+ * @returns {{ title: string; path: string[] }}
+ */
+function titlepathToTestParams(titlePath) {
 	const [_root, _project, _file, ...fullpath] = titlePath;
 
 	return {
