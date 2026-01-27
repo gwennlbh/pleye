@@ -5,6 +5,14 @@ services:
       - 3000:3000
     env_file:
       - .env
+  studio:
+    image: ghcr.io/drizzle-team/gateway:latest
+    ports:
+      - 8090:8090
+    environment:
+      PORT: 8090
+    volumes:
+      - drizzle-gateway:/app
   db:
     image: postgres
     restart: always
@@ -16,5 +24,7 @@ services:
       POSTGRES_DB: local
     volumes:
       - pgdata:/var/lib/postgresql
+
 volumes:
   pgdata:
+  drizzle-gateway:
