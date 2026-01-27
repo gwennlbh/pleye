@@ -96,6 +96,8 @@ export async function parsePayload<Schema extends Type>(
 				if (key.endsWith('At') && typeof value === 'string') {
 					return new Date(value);
 				}
+
+				return value;
 			})
 		)
 		.then((payload) => schema.assert(payload));
