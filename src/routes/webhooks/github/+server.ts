@@ -12,20 +12,22 @@ const Webhook = new Webhooks({
 
 const Events = {
 	ping: PingEvent,
-	'workflow_job.completed': WorkflowJobCompletedEvent
+	workflow_job: WorkflowJobCompletedEvent
 };
 
 const EventName = type.enumerated(...keys(Events));
 
 export async function POST({ request }) {
-	const payload = await request.json();
+	const raw = await request.text();
 
 	// Validate webhook signature
-	const valid = await Webhook.verify(payload, request.headers.get('X-Hub-Signature-256') || '');
+	const valid = await Webhook.verify(raw, request.headers.get('X-Hub-Signature-256') || '');
 
 	if (!valid) {
 		error(400, 'Invalid signature');
 	}
+
+	const payload = JSON.parse(raw);
 
 	const event = request.headers.get('X-GitHub-Event');
 
@@ -45,7 +47,7 @@ export async function POST({ request }) {
 
 		// If a job completed, find the matching testrun and force-mark it as completed
 		// (in case the reporter couldnt do so (job was cancelled, etc))
-		case 'workflow_job.completed': {
+		case 'workflow_job': {
 			return onWorkflowJobCompleted(payload);
 		}
 	}

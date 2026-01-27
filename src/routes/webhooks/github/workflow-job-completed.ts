@@ -6,6 +6,7 @@ import { and, eq } from 'drizzle-orm';
 
 export const WorkflowJobCompletedEvent = type({
 	repository: { id: 'number' },
+	action: "string",
 	workflow_job: {
 		id: 'number',
 		// XXX: not official, see https://github.com/github/rest-api-description/issues/1634
@@ -26,6 +27,8 @@ export const WorkflowJobCompletedEvent = type({
 
 export async function onWorkflowJobCompleted(payload: unknown) {
 	const data = WorkflowJobCompletedEvent.assert(payload);
+
+	if (data.action !== "completed") return json({ ok: "ignored" })
 
 	// Get repository
 	const repository = await db.query.repositories.findFirst({
