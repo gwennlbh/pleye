@@ -12,7 +12,8 @@ import {
 import type {
 	TestCase as PlaywrightTestCase,
 	TestResult as PlaywrightTestResult,
-	TestStep as PlaywrightTestStep
+	TestStep as PlaywrightTestStep,
+	FullResult as PlaywrightFullResult
 } from '@playwright/test/reporter';
 
 export const apiKeys = pgTable('api_keys', {
@@ -20,7 +21,7 @@ export const apiKeys = pgTable('api_keys', {
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	name: text('name').notNull(),
 	key: text('key').notNull().unique(),
-    repositoryId: integer('repository_id').notNull()
+	repositoryId: integer('repository_id').notNull()
 });
 
 export const repositories = pgTable('repositories', {
@@ -28,9 +29,7 @@ export const repositories = pgTable('repositories', {
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	githubId: integer('github_id').notNull().unique(),
 	githubOwner: text('github_owner').notNull(),
-	githubRepo: text('github_repo').notNull(),
-	/** E.g.  */
-	workflowJobPattern: text('workflow_job_pattern').notNull()
+	githubRepo: text('github_repo').notNull()
 });
 
 /** A Playwright Project */
@@ -56,7 +55,7 @@ export const tests = pgTable('tests', {
 export const runs = pgTable('runs', {
 	id: serial('id').primaryKey(),
 	repositoryId: integer('repository_id').notNull(),
-	githubRunId: integer('github_run_id').notNull(),
+	githubJobId: integer('github_job_id').notNull(),
 	commitSha: text('commit_sha').notNull(),
 	branch: text('branch').notNull(),
 	pullRequestNumber: integer('pull_request_number'),
@@ -68,7 +67,12 @@ export const runs = pgTable('runs', {
 	}).notNull(),
 	/** Playwright full test run result */
 	result: text('result', {
-		enum: ['passed', 'failed', 'timedout', 'interrupted']
+		enum: [
+			'passed',
+			'failed',
+			'timedout',
+			'interrupted'
+		] as const satisfies PlaywrightFullResult['status'][]
 	})
 });
 
