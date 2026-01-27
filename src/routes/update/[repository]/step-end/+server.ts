@@ -9,7 +9,7 @@ import { json } from '@sveltejs/kit';
 export const _Body = type({
 	githubJobId: 'number',
 	test: createInsertSchema(steps).pick('title', 'path'),
-	startedAt: 'string.date.iso.parse',
+	startedAt: 'Date',
 	duration: createInsertSchema(steps).get('duration').extract('string'),
 	'error?': createInsertSchema(errors).omit('id', 'resultId')
 });
