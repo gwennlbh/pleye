@@ -1,4 +1,5 @@
 import {
+	bigint,
 	integer,
 	interval,
 	json,
@@ -42,8 +43,8 @@ export const projects = pgTable('projects', {
 	ignore: json('ignore').$type<string[]>().notNull(),
 	timeoutMs: integer('timeout_ms').notNull()
 });
- 
-// TODO: add filename, repository, etc... 
+
+// TODO: add filename, repository, etc...
 // ok so we need to not put this in the id column.
 export function testId({ title, path }: { title: string; path: string[] }): string {
 	return [...path, title].join('›');
@@ -66,7 +67,7 @@ export const tests = pgTable('tests', {
 export const runs = pgTable('runs', {
 	id: serial('id').primaryKey(),
 	repositoryId: integer('repository_id').notNull(),
-	githubJobId: integer('github_job_id').notNull(),
+	githubJobId: bigint('github_job_id', { mode: 'number' }).notNull(),
 	commitSha: text('commit_sha').notNull(),
 	branch: text('branch').notNull(),
 	pullRequestNumber: integer('pull_request_number'),
