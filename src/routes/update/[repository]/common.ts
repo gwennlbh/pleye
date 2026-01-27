@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { repositories, runs, testruns, tests } from '$lib/server/db/schema';
+import { repositories, runs, testId, testruns, tests } from '$lib/server/db/schema';
 import { error } from '@sveltejs/kit';
 import type { Type } from 'arktype';
 import { and, eq } from 'drizzle-orm';
@@ -79,10 +79,6 @@ export async function findTest(
 	}
 
 	return test;
-}
-
-export function testId({ title, path }: { title: string; path: string[] }): string {
-	return [...path, title].join('›');
 }
 
 export async function parsePayload<Schema extends Type>(

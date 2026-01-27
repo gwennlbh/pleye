@@ -1,9 +1,9 @@
 import { db } from '$lib/server/db';
-import { projects, steps, testruns, tests } from '$lib/server/db/schema';
+import { projects, steps, testId, testruns, tests } from '$lib/server/db/schema';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
 import { and, eq } from 'drizzle-orm';
-import { findRepository, findRun, parsePayload, testId } from '../common';
+import { findRepository, findRun, parsePayload } from '../common';
 import { error, json } from '@sveltejs/kit';
 
 export const _Body = type({

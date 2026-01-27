@@ -1,10 +1,9 @@
-import { steps, testruns, tests } from '$lib/server/db/schema';
+import { db } from '$lib/server/db';
+import { steps, tests } from '$lib/server/db/schema';
+import { json } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
-import { findRepository, findTest, findTestRun, parsePayload, testId } from '../common';
-import { db } from '$lib/server/db';
-import { and, eq } from 'drizzle-orm';
-import { json } from '@sveltejs/kit';
+import { findTestRun, parsePayload } from '../common';
 
 export const _Body = type({
 	githubJobId: 'number',
