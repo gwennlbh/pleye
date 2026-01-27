@@ -12,7 +12,7 @@ import type { Inputs } from './inputs';
 
 type RunData = Inputs['begin']['run'];
 
-class Pleye implements Reporter {
+export default class Pleye implements Reporter {
 	#apiKey: string;
 	#serverOrigin: string;
 	#repositoryGitHubId: number;
@@ -80,11 +80,15 @@ class Pleye implements Reporter {
 	}
 
 	onStepBegin(test: TestCase, result: TestResult, step: TestStep): void {
-		const [title, ...path] = step.titlePath();
+		if (step.steps.length > 0) {
+			// We only care about "true" steps
+			return;
+		}
 
+		const { title, path } = titlepathToTestParams(test.titlePath());
 		this.#sendPayload('step-begin', {
 			githubJobId: this.#runData.githubJobId,
-			testId: test.id,
+			test: { title, path },
 			step: {
 				title,
 				path,
@@ -100,14 +104,15 @@ class Pleye implements Reporter {
 	onStepEnd(test: TestCase, result: TestResult, step: TestStep): void {
 		this.#sendPayload('step-end', {
 			githubJobId: this.#runData.githubJobId,
-			testId: test.id,
+			test: titlepathToTestParams(test.titlePath()),
 			duration: toISOInterval(step.duration),
+			startedAt: step.startTime.toISOString(),
 			error: step.error ? toError(step.error) : undefined
 		});
 	}
 
 	onTestBegin(test: TestCase, result: TestResult): void {
-		const [title, ...path] = test.titlePath();
+		const { title, path } = titlepathToTestParams(test.titlePath());
 
 		const project = test.parent?.project();
 		if (!project) {
@@ -128,18 +133,18 @@ class Pleye implements Reporter {
 			testrun: {
 				timeoutMs: test.timeout,
 				expectedStatus: test.expectedStatus,
-				retriesLimit: test.retries
+				retriesLimit: test.retries,
+				retries: result.retry
 			}
 		});
 	}
 
 	onTestEnd(test: TestCase, result: TestResult): void {
-		const [title, ...path] = test.titlePath();
-
 		this.#sendPayload('test-end', {
 			githubJobId: this.#runData.githubJobId,
-			test: { title, path },
+			test: titlepathToTestParams(test.titlePath()),
 			outcome: test.outcome(),
+			stepsCount: result.steps.length || undefined,
 			result: {
 				duration: toISOInterval(result.duration),
 				annotations: result.annotations,
@@ -218,4 +223,13 @@ function climbToCauseError(error: TestError): TestError {
 	}
 
 	return error;
+}
+
+function titlepathToTestParams(titlePath: string[]): { title: string; path: string[] } {
+	const [_root, _project, _file, ...fullpath] = titlePath;
+
+	return {
+		title: fullpath.at(-1) ?? '',
+		path: fullpath.slice(0, -1)
+	};
 }

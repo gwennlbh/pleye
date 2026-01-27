@@ -52,7 +52,9 @@ export const tests = pgTable('tests', {
 	annotations: json('annotations').$type<PlaywrightTestCase['annotations']>().notNull(),
 	tags: json('tags').$type<string[]>().notNull(),
 	/** Point with coords (line, column) */
-	locationInFile: point('location_in_file').notNull()
+	locationInFile: point('location_in_file').notNull(),
+	/** Latest-known steps count, updated at end of every test run, used for progress reporting */
+	stepsCount: integer('steps_count').notNull(),
 });
 
 export const runs = pgTable('runs', {
@@ -82,7 +84,7 @@ export const runs = pgTable('runs', {
 export const testruns = pgTable('testruns', {
 	id: serial('id').primaryKey(),
 	runId: integer('run_id').notNull(),
-	testId: integer('test_id').notNull(),
+	testId: text('test_id').notNull(),
 	projectId: integer('project_id').notNull(),
 	/** Outcome of the test, null if test is still running */
 	outcome: text('outcome', {
@@ -147,10 +149,11 @@ export const steps = pgTable('steps', {
 		 */
 		enum: ['expect', 'fixture', 'hook', 'pw:api', 'test.step', 'test.attach', 'custom']
 	}).notNull(),
-	duration: interval('duration', { fields: 'hour to second' }).notNull(),
+	duration: interval('duration', { fields: 'hour to second' }),
 	filePath: text('file_path'),
 	locationInFile: point('location_in_file'),
-	parentStepId: integer('parent_step_id'),
+	// TODO: support ts ?
+	// parentStepId: integer('parent_step_id'),
 	startedAt: timestamp('started_at').notNull()
 });
 

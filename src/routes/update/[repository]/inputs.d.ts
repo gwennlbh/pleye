@@ -5,6 +5,4 @@ export type Inputs = {
 	'test-end': typeof import('./test-end/+server')._Body.inferIn;
 	'step-begin': typeof import('./step-begin/+server')._Body.inferIn;
 	'step-end': typeof import('./step-end/+server')._Body.inferIn;
-	stdout: typeof import('./stdout/+server')._Body.inferIn;
-	stderr: typeof import('./stderr/+server')._Body.inferIn;
 };
