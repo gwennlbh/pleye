@@ -119,10 +119,6 @@ export const stepRelations = relations(steps, ({ one, many }) => ({
 		fields: [steps.resultId],
 		references: [results.id]
 	}),
-	parentStep: one(steps, {
-		fields: [steps.parentStepId],
-		references: [steps.id]
-	}),
 	error: one(errors, {
 		fields: [steps.errorId],
 		references: [errors.id]
