@@ -1,7 +1,7 @@
 import { steps, testruns, tests } from '$lib/server/db/schema';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
-import { findRepository, findTest, findTestRun, testId } from '../common';
+import { findRepository, findTest, findTestRun, parsePayload, testId } from '../common';
 import { db } from '$lib/server/db';
 import { and, eq } from 'drizzle-orm';
 import { json } from '@sveltejs/kit';
@@ -13,8 +13,7 @@ export const _Body = type({
 });
 
 export async function POST({ request, params }) {
-	const payload = await request.json();
-	const data = _Body.assert(payload);
+	const data = await parsePayload(request, _Body);
 
 	const testrun = await findTestRun(params, data.githubJobId, data.test);
 

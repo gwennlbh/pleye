@@ -1,6 +1,7 @@
 import { db } from '$lib/server/db';
 import { repositories, runs, testruns, tests } from '$lib/server/db/schema';
 import { error } from '@sveltejs/kit';
+import type { Type } from 'arktype';
 import { and, eq } from 'drizzle-orm';
 
 export async function findRepository(params: { repository: string }) {
@@ -82,4 +83,20 @@ export async function findTest(
 
 export function testId({ title, path }: { title: string; path: string[] }): string {
 	return [...path, title].join('›');
+}
+
+export async function parsePayload<Schema extends Type>(
+	request: Request,
+	schema: Schema
+): Promise<Schema['inferOut']> {
+	return await request
+		.text()
+		.then((raw) =>
+			JSON.parse(raw, (key, value) => {
+				if (key.endsWith('At') && typeof value === 'string') {
+					return new Date(value);
+				}
+			})
+		)
+		.then((payload) => schema.assert(payload));
 }

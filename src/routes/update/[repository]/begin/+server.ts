@@ -3,7 +3,7 @@ import { projects, runs } from '$lib/server/db/schema';
 import { type } from 'arktype';
 import { json } from '@sveltejs/kit';
 import { createInsertSchema } from 'drizzle-arktype';
-import { findRepository } from '../common.js';
+import { findRepository, parsePayload } from '../common.js';
 import { and, eq } from 'drizzle-orm';
 
 export const _Body = type({
@@ -12,8 +12,7 @@ export const _Body = type({
 });
 
 export async function POST({ request, params }) {
-	const payload = await request.json();
-	const data = _Body.assert(payload);
+	const data = await parsePayload(request, _Body);
 
 	const repository = await findRepository(params);
 

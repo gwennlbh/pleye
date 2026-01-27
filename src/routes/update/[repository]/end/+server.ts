@@ -3,7 +3,7 @@ import { runs } from '$lib/server/db/schema';
 import { json } from '@sveltejs/kit';
 import { createInsertSchema } from 'drizzle-arktype';
 import { and, eq } from 'drizzle-orm';
-import { findRepository } from '../common';
+import { findRepository, parsePayload } from '../common';
 
 export const _Body = createInsertSchema(runs).pick(
 	'githubJobId',
@@ -13,8 +13,7 @@ export const _Body = createInsertSchema(runs).pick(
 );
 
 export async function POST({ request, params }) {
-	const payload = await request.json();
-	const data = _Body.assert(payload);
+	const data = await parsePayload(request, _Body);
 
 	const repository = await findRepository(params);
 
