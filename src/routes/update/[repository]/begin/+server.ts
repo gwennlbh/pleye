@@ -1,0 +1,51 @@
+import { db } from '$lib/server/db/index.js';
+import { projects, runs } from '$lib/server/db/schema';
+import { type } from 'arktype';
+import { json } from '@sveltejs/kit';
+import { createInsertSchema } from 'drizzle-arktype';
+import { findRepository } from '../common.js';
+import { and, eq } from 'drizzle-orm';
+
+export const _Body = type({
+	run: createInsertSchema(runs).omit('id', 'repositoryId', 'completedAt', 'result', 'status'),
+	projects: createInsertSchema(projects).omit('id', 'repositoryId').array()
+});
+
+export async function POST({ request, params }) {
+	const payload = await request.json();
+	const data = _Body.assert(payload);
+
+	const repository = await findRepository(params);
+
+	for (const projectData of data.projects) {
+		const projectValues = {
+			repositoryId: repository.id,
+			...projectData
+		};
+
+		let project = await db.query.projects.findFirst({
+			where: and(eq(projects.repositoryId, repository.id), eq(projects.name, projectData.name))
+		});
+
+		if (project) {
+			[project] = await db
+				.update(projects)
+				.set(projectValues)
+				.where(eq(projects.name, project.name))
+				.returning();
+		} else {
+			[project] = await db.insert(projects).values(projectValues).returning();
+		}
+	}
+
+	const [run] = await db
+		.insert(runs)
+		.values({
+			repositoryId: repository.id,
+			status: 'in_progress',
+			...data.run
+		})
+		.returning();
+
+	return json({ run });
+}

@@ -123,7 +123,10 @@ export const stepRelations = relations(steps, ({ one, many }) => ({
 		fields: [steps.parentStepId],
 		references: [steps.id]
 	}),
-	errors: many(errors)
+	error: one(errors, {
+		fields: [steps.errorId],
+		references: [errors.id]
+	})
 }));
 
 export const errorRelations = relations(errors, ({ one }) => ({
@@ -131,8 +134,8 @@ export const errorRelations = relations(errors, ({ one }) => ({
 		fields: [errors.resultId],
 		references: [results.id]
 	}),
-	cause: one(errors, {
-		fields: [errors.causeId],
-		references: [errors.id]
+	step: one(steps, {
+		fields: [errors.stepId],
+		references: [steps.id]
 	})
 }));

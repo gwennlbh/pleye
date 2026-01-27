@@ -54,7 +54,6 @@ export async function onWorkflowJobCompleted(payload: unknown) {
 	return await db
 		.update(runs)
 		.set({
-			id: run.id,
 			status: 'completed',
 			completedAt: data.workflow_job.completed_at,
 			startedAt: data.workflow_job.started_at,
@@ -71,6 +70,7 @@ export async function onWorkflowJobCompleted(payload: unknown) {
 				} as const
 			)[data.workflow_job.conclusion]
 		})
+		.where(eq(runs.id, run.id))
 		.returning()
 		.then(([run]) => json(run));
 }

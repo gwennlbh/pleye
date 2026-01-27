@@ -46,7 +46,8 @@ export async function onPing(payload: unknown, requiredEvents: string[]) {
 	if (existing) {
 		return await db
 			.update(repositories)
-			.set({ id: existing.id, ...values })
+			.set(values)
+			.where(eq(repositories.id, existing.id))
 			.returning()
 			.then(([repository]) => json(repository));
 	}
