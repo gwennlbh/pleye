@@ -54,7 +54,7 @@ export const tests = pgTable('tests', {
 	/** Point with coords (line, column) */
 	locationInFile: point('location_in_file').notNull(),
 	/** Latest-known steps count, updated at end of every test run, used for progress reporting */
-	stepsCount: integer('steps_count').notNull(),
+	stepsCount: integer('steps_count').notNull()
 });
 
 export const runs = pgTable('runs', {
