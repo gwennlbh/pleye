@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { projects, testruns, tests } from '$lib/server/db/schema';
+import { projects, steps, testruns, tests } from '$lib/server/db/schema';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
 import { and, eq } from 'drizzle-orm';
@@ -58,15 +58,36 @@ export async function POST({ params, request }) {
 			.returning();
 	}
 
-	// Create the testrun
+	let testrun = await db.query.testruns.findFirst({
+		where: and(
+			eq(testruns.testId, test.id),
+			eq(testruns.runId, run.id),
+			eq(testruns.projectId, project.id)
+		)
+	});
 
-	return await db
-		.insert(testruns)
-		.values({
-			testId: test.id,
-			runId: run.id,
-			projectId: project.id,
-			...data.testrun
-		})
-		.then(([testrun]) => json({ testrun }));
+	if (testrun) {
+		// Wipe all steps for this testrun, as we're starting it again
+		await db.delete(steps).where(eq(steps.testrunId, testrun.id));
+
+		[testrun] = await db
+			.update(testruns)
+			.set({
+				...data.testrun
+			})
+			.where(eq(testruns.id, testrun.id))
+			.returning();
+	} else {
+		[testrun] = await db
+			.insert(testruns)
+			.values({
+				testId: test.id,
+				runId: run.id,
+				projectId: project.id,
+				...data.testrun
+			})
+			.returning();
+	}
+
+	return json({ testrun, test, project, run, repository });
 }
