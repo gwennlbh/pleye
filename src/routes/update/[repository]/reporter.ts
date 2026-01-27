@@ -106,7 +106,7 @@ export default class Pleye implements Reporter {
 			githubJobId: this.#runData.githubJobId,
 			test: titlepathToTestParams(test.titlePath()),
 			duration: toISOInterval(step.duration),
-			startedAt: step.startTime.toISOString(),
+			startedAt: step.startTime,
 			error: step.error ? toError(step.error) : undefined
 		});
 	}
