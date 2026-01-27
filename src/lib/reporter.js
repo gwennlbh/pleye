@@ -5,6 +5,17 @@
  */
 
 /**
+ * @typedef {object} PleyeParams
+ * @property {string} apiKey API Key to use
+ * @property {string} serverOrigin Origin of the Pleye server, e.g. https://pleye.example.com
+ * @property {number} repositoryGitHubId Github ID of the current repository
+ * @property {number} githubJobId ID of the current GitHub job we're on
+ * @property {string} commitSha Current commit SHA
+ * @property {string} branch Current branch name
+ * @property {number | undefined | null} [pullRequestNumber] Pull request number, if any
+ */
+
+/**
  * @implements {PW.Reporter}
  */
 export default class Pleye {
@@ -19,14 +30,7 @@ export default class Pleye {
 
 	/**
 	 *
-	 * @param {object} params
-	 * @param {string} params.apiKey API Key to use
-	 * @param {string} params.serverOrigin Origin of the Pleye server, e.g. https://pleye.example.com
-	 * @param {number} params.repositoryGitHubId Github ID of the current repository
-	 * @param {number} params.githubJobId ID of the current GitHub job we're on
-	 * @param {string} params.commitSha Current commit SHA
-	 * @param {string} params.branch Current branch name
-	 * @param {number | undefined | null} [params.pullRequestNumber] Pull request number, if any
+	 * @param {PleyeParams} params
 	 */
 	constructor(params) {
 		const { apiKey, serverOrigin, repositoryGitHubId, ...runData } = params;
