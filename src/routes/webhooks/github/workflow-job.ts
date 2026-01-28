@@ -27,9 +27,17 @@ export const WorkflowJobEvent = type({
 });
 
 export async function onWorkflowJob(payload: unknown) {
-	const data = WorkflowJobEvent.assert(payload);
+	if (typeof payload !== 'object' || payload === null) {
+		error(400, 'Invalid payload');
+	}
 
-	if (data.action !== 'completed') return json({ ok: 'ignored' });
+	if (!('action' in payload)) {
+		error(400, 'Invalid workflow_job payload: missing action');
+	}
+
+	if (payload.action !== 'completed') return json({ ok: 'ignored' });
+
+	const data = WorkflowJobEvent.assert(payload);
 
 	// Get repository
 	const repository = await db.query.repositories.findFirst({
