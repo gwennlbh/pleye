@@ -250,12 +250,13 @@ function toISOInterval(durationMs) {
  * @returns {NonNullable<Inputs['step-end']['error']>}
  */
 function toError(error) {
-	const { location, message, stack } = climbToCauseError(error);
+	const { location, message, stack, snippet } = climbToCauseError(error);
 	return {
+		message,
+		stack,
+		snippet,
 		filePath: location?.file ?? null,
-		locationInFile: location ? [location.line, location.column] : null,
-		message: message,
-		stack: stack
+		locationInFile: location ? [location.line, location.column] : null
 	};
 }
 
