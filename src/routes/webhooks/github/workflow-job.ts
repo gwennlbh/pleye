@@ -78,7 +78,8 @@ export async function onWorkflowJob(payload: unknown) {
 					neutral: 'passed',
 					success: 'passed',
 					stale: 'timedout',
-					timed_out: 'timedout'
+					timed_out: 'timedout',
+					skipped: 'passed'
 				} as const
 			)[data.workflow_job.conclusion]
 		})
