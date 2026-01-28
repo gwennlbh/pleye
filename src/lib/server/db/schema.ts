@@ -44,8 +44,8 @@ export const repositories = pgTable(
 		githubRepo: text('github_repo').notNull()
 	},
 	(t) => [
-		index('by_owner_and_repo').on(t.githubOwner, t.githubRepo),
-		uniqueIndex('github_id').on(t.githubId)
+		index('repositories_by_owner_and_repo').on(t.githubOwner, t.githubRepo),
+		uniqueIndex('repositories_github_id').on(t.githubId)
 	]
 );
 
@@ -64,8 +64,8 @@ export const projects = pgTable(
 		timeoutMs: integer('timeout_ms').notNull()
 	},
 	(t) => [
-		index('by_repository').on(t.repositoryId),
-		uniqueIndex('repository_and_name').on(t.repositoryId, t.name)
+		index('projects_by_repository').on(t.repositoryId),
+		uniqueIndex('projects_repository_and_name').on(t.repositoryId, t.name)
 	]
 );
 
@@ -88,8 +88,8 @@ export const tests = pgTable(
 		stepsCount: integer('steps_count').notNull()
 	},
 	(t) => [
-		index('by_repository').on(t.repositoryId),
-		uniqueIndex('repo_and_full_path').on(t.repositoryId, t.filePath, t.path, t.title)
+		index('tests_by_repository').on(t.repositoryId),
+		uniqueIndex('tests_repo_and_full_path').on(t.repositoryId, t.filePath, t.path, t.title)
 	]
 );
 
@@ -122,11 +122,11 @@ export const runs = pgTable(
 		})
 	},
 	(t) => [
-		index('by_repository').on(t.repositoryId),
-		index('by_commit').on(t.repositoryId, t.commitSha),
-		index('by_pr').on(t.repositoryId, t.pullRequestNumber),
-		index('by_branch').on(t.repositoryId, t.branch),
-		uniqueIndex('repo_and_job').on(t.repositoryId, t.githubJobId)
+		index('runs_by_repository').on(t.repositoryId),
+		index('runs_by_commit').on(t.repositoryId, t.commitSha),
+		index('runs_by_pr').on(t.repositoryId, t.pullRequestNumber),
+		index('runs_by_branch').on(t.repositoryId, t.branch),
+		uniqueIndex('runs_repo_and_job').on(t.repositoryId, t.githubJobId)
 	]
 );
 
@@ -166,9 +166,9 @@ export const testruns = pgTable(
 		timeoutMs: integer('timeout_ms').notNull()
 	},
 	(t) => [
-		index('by_run').on(t.runId),
-		index('by_test').on(t.testId),
-		uniqueIndex('run_and_test').on(t.runId, t.testId)
+		index('testruns_by_run').on(t.runId),
+		index('testruns_by_test').on(t.testId),
+		uniqueIndex('testruns_run_and_test').on(t.runId, t.testId)
 	]
 );
 
@@ -198,8 +198,8 @@ export const results = pgTable(
 		stdout: text('stdout').notNull()
 	},
 	(t) => [
-		index('by_testrun').on(t.testrunId),
-		uniqueIndex('testrun_and_retry').on(t.testrunId, t.retry)
+		index('results_by_testrun').on(t.testrunId),
+		uniqueIndex('results_testrun_and_retry').on(t.testrunId, t.retry)
 	]
 );
 
@@ -235,8 +235,8 @@ export const steps = pgTable(
 		startedAt: timestamp('started_at').notNull()
 	},
 	(t) => [
-		index('by_testrun').on(t.testrunId),
-		uniqueIndex('testrun_and_path').on(t.testrunId, t.filePath, t.path, t.title)
+		index('steps_by_testrun').on(t.testrunId),
+		uniqueIndex('steps_testrun_and_path').on(t.testrunId, t.filePath, t.path, t.title)
 	]
 );
 
@@ -255,8 +255,8 @@ export const errors = pgTable(
 		value: text('value')
 	},
 	(t) => [
-		check('linked_to_something', sql`not (${t.resultId} is null and ${t.stepId} is null)`),
-		index('by_result').on(t.resultId),
-		index('by_step').on(t.stepId)
+		check('errors_linked_to_something', sql`not (${t.resultId} is null and ${t.stepId} is null)`),
+		index('errors_by_result').on(t.resultId),
+		index('errors_by_step').on(t.stepId)
 	]
 );
