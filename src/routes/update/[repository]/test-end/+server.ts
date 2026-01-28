@@ -12,7 +12,7 @@ export const _Body = type({
 	githubJobId: 'number',
 	outcome: Outcome,
 	test: createInsertSchema(tests).pick('title', 'path'),
-	stepsCount: 'undefined | number > 0',
+	'stepsCount?': 'undefined | number > 0',
 	result: createInsertSchema(results)
 		.omit('id', 'testrunId')
 		.and({
@@ -25,13 +25,15 @@ export async function POST({ params, request }) {
 
 	let testrun = await findTestRun(params, data.githubJobId, data.test);
 
-	const [test] = await db
-		.update(tests)
-		.set({
-			stepsCount: data.stepsCount
-		})
-		.where(eq(tests.id, testrun.testId))
-		.returning();
+	if (data.stepsCount) {
+		await db
+			.update(tests)
+			.set({
+				stepsCount: data.stepsCount
+			})
+			.where(eq(tests.id, testrun.testId))
+			.returning();
+	}
 
 	const [result] = await db
 		.insert(results)
@@ -56,5 +58,5 @@ export async function POST({ params, request }) {
 		.where(eq(testruns.id, testrun.id))
 		.returning();
 
-	return json({ testrun, test, result });
+	return json({ testrun, result });
 }
