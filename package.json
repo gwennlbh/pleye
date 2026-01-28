@@ -51,6 +51,7 @@
 	},
 	"dependencies": {
 		"arktype": "^2.1.29",
+		"date-fns": "^4.1.0",
 		"postgres": "^3.4.8"
 	}
 }
