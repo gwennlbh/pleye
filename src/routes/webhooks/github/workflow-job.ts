@@ -5,8 +5,12 @@ import { type } from 'arktype';
 import { and, eq } from 'drizzle-orm';
 
 export const WorkflowJobEvent = type({
-	repository: { id: 'number' },
 	action: 'string',
+	repository: {
+		id: 'number',
+		owner: 'string',
+		repo: 'string'
+	},
 	workflow_job: {
 		id: 'number',
 		// XXX: not official, see https://github.com/github/rest-api-description/issues/1634
@@ -35,21 +39,27 @@ export async function onWorkflowJob(payload: unknown) {
 		error(400, 'Invalid workflow_job payload: missing action');
 	}
 
-	if (payload.action !== 'completed') return json({ ok: 'ignored' });
-
 	const data = WorkflowJobEvent.assert(payload);
 
+	// Also take queued events to create repository before the testing starts, if it is missing
+	if (payload.action !== 'completed' && payload.action !== 'queued') return json({ ok: 'ignored' });
+
 	// Get repository
-	const repository = await db.query.repositories.findFirst({
+	let repository = await db.query.repositories.findFirst({
 		where: eq(repositories.githubId, data.repository.id)
 	});
 
 	if (!repository) {
-		error(
-			404,
-			`Repository with GitHub ID ${data.repository.id} not found. Send a ping event (by re-adding the webhook) first to register it.`
-		);
+		// Create repository
+
+		[repository] = await db.insert(repositories).values({
+			githubId: data.repository.id,
+			githubOwner: data.repository.owner,
+			githubRepo: data.repository.repo
+		});
 	}
+
+	if (payload.action !== "completed") return json({ ok: 'ignored' });
 
 	// Search for a run that matches the given job ID and update its status to completed
 	const run = await db.query.runs.findFirst({
