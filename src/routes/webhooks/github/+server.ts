@@ -4,7 +4,7 @@ import { Webhooks } from '@octokit/webhooks';
 import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { onPing, PingEvent } from './ping.js';
-import { onWorkflowJobCompleted, WorkflowJobCompletedEvent } from './workflow-job-completed.js';
+import { onWorkflowJob, WorkflowJobEvent } from './workflow-job.js';
 
 const Webhook = new Webhooks({
 	secret: env.MASTER_KEY
@@ -12,7 +12,7 @@ const Webhook = new Webhooks({
 
 const Events = {
 	ping: PingEvent,
-	workflow_job: WorkflowJobCompletedEvent
+	workflow_job: WorkflowJobEvent
 };
 
 const EventName = type.enumerated(...keys(Events));
@@ -48,7 +48,7 @@ export async function POST({ request }) {
 		// If a job completed, find the matching testrun and force-mark it as completed
 		// (in case the reporter couldnt do so (job was cancelled, etc))
 		case 'workflow_job': {
-			return onWorkflowJobCompleted(payload);
+			return onWorkflowJob(payload);
 		}
 	}
 }

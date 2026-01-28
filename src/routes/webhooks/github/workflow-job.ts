@@ -4,7 +4,7 @@ import { error, json } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { and, eq } from 'drizzle-orm';
 
-export const WorkflowJobCompletedEvent = type({
+export const WorkflowJobEvent = type({
 	repository: { id: 'number' },
 	action: 'string',
 	workflow_job: {
@@ -18,15 +18,16 @@ export const WorkflowJobCompletedEvent = type({
 			'cancelled',
 			'timed_out',
 			'action_required',
-			'stale'
+			'stale',
+			'skipped'
 		),
 		completed_at: 'string.date.iso.parse',
 		started_at: 'string.date.iso.parse'
 	}
 });
 
-export async function onWorkflowJobCompleted(payload: unknown) {
-	const data = WorkflowJobCompletedEvent.assert(payload);
+export async function onWorkflowJob(payload: unknown) {
+	const data = WorkflowJobEvent.assert(payload);
 
 	if (data.action !== 'completed') return json({ ok: 'ignored' });
 
