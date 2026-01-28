@@ -1,7 +1,7 @@
 import { errors, results, testruns, tests } from '$lib/server/db/schema';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
-import { findTestRun, parsePayload } from '../common';
+import { findTestRun, parsePayload, TestIdentifier } from '../common';
 import { db } from '$lib/server/db';
 import { eq } from 'drizzle-orm';
 import { json } from '@sveltejs/kit';
@@ -11,7 +11,7 @@ const Outcome = createInsertSchema(testruns).get('outcome').extract('string');
 export const _Body = type({
 	githubJobId: 'number',
 	outcome: Outcome,
-	test: createInsertSchema(tests).pick('title', 'path'),
+	test: TestIdentifier,
 	'stepsCount?': 'undefined | number > 0',
 	result: createInsertSchema(results)
 		.omit('id', 'testrunId')

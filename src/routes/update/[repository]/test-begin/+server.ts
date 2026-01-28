@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { projects, steps, testId, testruns, tests } from '$lib/server/db/schema';
+import { projects, steps, testruns, tests } from '$lib/server/db/schema';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
 import { and, eq } from 'drizzle-orm';
@@ -35,7 +35,12 @@ export async function POST({ params, request }) {
 	// Create the test definition
 
 	let test = await db.query.tests.findFirst({
-		where: and(eq(tests.repositoryId, repository.id), eq(tests.id, testId(data.test)))
+		where: and(
+			eq(tests.repositoryId, repository.id),
+			eq(tests.filePath, data.test.filePath),
+			eq(tests.path, data.test.path),
+			eq(tests.title, data.test.title)
+		)
 	});
 
 	if (test) {
@@ -50,7 +55,6 @@ export async function POST({ params, request }) {
 		[test] = await db
 			.insert(tests)
 			.values({
-				id: testId(data.test),
 				repositoryId: repository.id,
 				stepsCount: 0,
 				...data.test

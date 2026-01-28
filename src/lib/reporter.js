@@ -89,7 +89,7 @@ export default class Pleye {
 
 		this.#sendPayload('step-begin', {
 			githubJobId: this.#runData.githubJobId,
-			test: titlepathToTestParams(test.titlePath()),
+			test: testIdentifierParams(test),
 			step: {
 				title: step.titlePath().at(-1) ?? '',
 				path: step.titlePath().slice(0, -1),
@@ -111,11 +111,13 @@ export default class Pleye {
 	 * @param {PW.TestStep} step
 	 */
 	onStepEnd(test, result, step) {
+		const stepIdentifier = stepIdentifierParams(test, step);
+		if (!stepIdentifier) return;
+
 		this.#sendPayload('step-end', {
 			githubJobId: this.#runData.githubJobId,
-			test: titlepathToTestParams(test.titlePath()),
+			step: stepIdentifier,
 			duration: toISOInterval(step.duration),
-			startedAt: step.startTime,
 			error: step.error ? toError(step.error) : undefined
 		});
 	}
@@ -126,7 +128,7 @@ export default class Pleye {
 	 * @param {PW.TestResult} result
 	 */
 	onTestBegin(test, result) {
-		const { title, path } = titlepathToTestParams(test.titlePath());
+		const { title, path } = splitTitlePath(test.titlePath());
 
 		const project = test.parent?.project();
 		if (!project) {
@@ -162,7 +164,7 @@ export default class Pleye {
 	onTestEnd(test, result) {
 		this.#sendPayload('test-end', {
 			githubJobId: this.#runData.githubJobId,
-			test: titlepathToTestParams(test.titlePath()),
+			test: testIdentifierParams(test),
 			outcome: test.outcome(),
 			stepsCount: result.steps.length || undefined,
 			result: {
@@ -284,12 +286,38 @@ function climbToCauseError(error) {
 
 /**
  *
- * @param {string[]} titlePath
- * @returns {{ title: string; path: string[] }}
+ * @param {PW.TestCase} test
+ * @param {PW.TestStep} step
+ * @returns {import('../routes/update/[repository]/common').StepIdentifierParams | undefined}
  */
-function titlepathToTestParams(titlePath) {
-	const [_root, _project, _file, ...fullpath] = titlePath;
+function stepIdentifierParams(test, step) {
+	// TODO handle steps without location?
+	if (!step.location) return;
 
+	return {
+		test: testIdentifierParams(test),
+		filePath: step.location.file,
+		...splitTitlePath(step.titlePath())
+	};
+}
+
+/**
+ *
+ * @param {PW.TestCase} test
+ * @returns {import('../routes/update/[repository]/common').TestIdentifierParams}
+ */
+function testIdentifierParams(test) {
+	return {
+		filePath: test.location.file,
+		...splitTitlePath(test.titlePath())
+	};
+}
+
+/**
+ * @param {string[]} titlePath
+ */
+function splitTitlePath(titlePath) {
+	const [_root, _project, _file, ...fullpath] = titlePath;
 	return {
 		title: fullpath.at(-1) ?? '',
 		path: fullpath.slice(0, -1)

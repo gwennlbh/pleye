@@ -3,12 +3,12 @@ import { steps, tests } from '$lib/server/db/schema';
 import { json } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
-import { findTestRun, parsePayload } from '../common';
+import { findTestRun, parsePayload, TestIdentifier } from '../common';
 
 export const _Body = type({
 	githubJobId: 'number',
-	test: createInsertSchema(tests).pick('title', 'path'),
-	step: createInsertSchema(steps).omit('id', 'testrunId', 'duration', 'resultId', 'errorId')
+	test: TestIdentifier,
+	step: createInsertSchema(steps).omit('id', 'testrunId', 'duration')
 });
 
 export async function POST({ request, params }) {

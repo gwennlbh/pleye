@@ -1,15 +1,14 @@
+import { db } from '$lib/server/db/index.js';
 import { errors, steps } from '$lib/server/db/schema';
+import { json } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
-import { findTestRun, parsePayload } from '../common';
-import { db } from '$lib/server/db/index.js';
 import { and, eq } from 'drizzle-orm';
-import { json } from '@sveltejs/kit';
+import { findTestRun, parsePayload, StepIdentifier } from '../common';
 
 export const _Body = type({
 	githubJobId: 'number',
-	test: createInsertSchema(steps).pick('title', 'path'),
-	startedAt: 'Date',
+	step: StepIdentifier,
 	duration: createInsertSchema(steps).get('duration').extract('string'),
 	'error?': createInsertSchema(errors).omit('id', 'resultId')
 });
@@ -17,14 +16,21 @@ export const _Body = type({
 export async function POST({ request, params }) {
 	const data = await parsePayload(request, _Body);
 
-	const testrun = await findTestRun(params, data.githubJobId, data.test);
+	const testrun = await findTestRun(params, data.githubJobId, data.step.test);
 
 	const [step] = await db
 		.update(steps)
 		.set({
 			duration: data.duration
 		})
-		.where(and(eq(steps.testrunId, testrun.id), eq(steps.startedAt, data.startedAt)))
+		.where(
+			and(
+				eq(steps.testrunId, testrun.id),
+				eq(steps.filePath, data.step.filePath),
+				eq(steps.path, data.step.path),
+				eq(steps.title, data.step.title)
+			)
+		)
 		.returning();
 
 	if (data.error) {

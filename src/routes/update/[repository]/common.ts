@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db';
-import { repositories, runs, testId, testruns, tests } from '$lib/server/db/schema';
+import { repositories, runs, testruns, tests } from '$lib/server/db/schema';
 import { error } from '@sveltejs/kit';
-import type { Type } from 'arktype';
+import { type, type Type } from 'arktype';
 import { and, eq } from 'drizzle-orm';
 
 export async function findRepository(params: { repository: string }) {
@@ -16,14 +16,31 @@ export async function findRepository(params: { repository: string }) {
 	return repository;
 }
 
+export const TestIdentifier = type({
+	title: 'string',
+	path: 'string[]',
+	filePath: 'string'
+});
+
+export const StepIdentifier = type({
+	title: 'string',
+	path: 'string[]',
+	filePath: 'string',
+	test: TestIdentifier
+});
+
+export type TestIdentifierParams = typeof TestIdentifier.infer;
+
+export type StepIdentifierParams = typeof StepIdentifier.infer;
+
 export async function findTestRun(
 	params: { repository: string },
 	githubJobId: number,
-	{ title, path }: { title: string; path: string[] }
+	testParams: TestIdentifierParams
 ) {
 	const repository = await findRepository(params);
 	const run = await findRun(params, githubJobId, repository.id);
-	const test = await findTest(params, { title, path }, repository.id);
+	const test = await findTest(params, testParams, repository.id);
 
 	const testrun = await db.query.testruns.findFirst({
 		where: and(eq(testruns.testId, test.id), eq(testruns.runId, run.id))
@@ -61,7 +78,7 @@ export async function findRun(
 
 export async function findTest(
 	params: { repository: string },
-	{ title, path }: { title: string; path: string[] },
+	{ title, path, filePath }: TestIdentifierParams,
 	repositoryId?: number
 ) {
 	repositoryId ??= await findRepository(params).then((r) => r.id);
@@ -71,11 +88,19 @@ export async function findTest(
 	}
 
 	const test = await db.query.tests.findFirst({
-		where: and(eq(tests.repositoryId, repositoryId), eq(tests.id, testId({ title, path })))
+		where: and(
+			eq(tests.repositoryId, repositoryId),
+			eq(tests.filePath, filePath),
+			eq(tests.path, path),
+			eq(tests.title, title)
+		)
 	});
 
 	if (!test) {
-		error(404, `Test ${testId({ title, path })} not found in repository ${params.repository}.`);
+		error(
+			404,
+			`Test ${[...path, title].join(' > ')} in ${filePath} not found in repository ${params.repository}.`
+		);
 	}
 
 	return test;
