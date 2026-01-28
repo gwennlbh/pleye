@@ -87,16 +87,17 @@ export default class Pleye {
 			return;
 		}
 
-		const { title, path } = titlepathToTestParams(test.titlePath());
 		this.#sendPayload('step-begin', {
 			githubJobId: this.#runData.githubJobId,
-			test: { title, path },
+			test: titlepathToTestParams(test.titlePath()),
 			step: {
-				title,
-				path,
+				title: step.titlePath().at(-1) ?? '',
+				path: step.titlePath().slice(0, -1),
 				startedAt: step.startTime,
 				annotations: step.annotations,
-				category: toStepCategory(step.category)
+				category: toStepCategory(step.category),
+				filePath: step.location?.file ?? null,
+				locationInFile: step.location ? [step.location.line, step.location.column] : null
 				// TODO: step.parent
 				// parentStepId: step.parent
 			}
