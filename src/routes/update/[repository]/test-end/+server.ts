@@ -53,7 +53,8 @@ export async function POST({ params, request }) {
 	[testrun] = await db
 		.update(testruns)
 		.set({
-			outcome: data.outcome
+			outcome: data.outcome,
+			duration: data.result.duration
 		})
 		.where(eq(testruns.id, testrun.id))
 		.returning();

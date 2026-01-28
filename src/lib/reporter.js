@@ -148,7 +148,8 @@ export default class Pleye {
 				timeoutMs: test.timeout,
 				expectedStatus: test.expectedStatus,
 				retriesLimit: test.retries,
-				retries: result.retry
+				retries: result.retry,
+				startedAt: result.startTime
 			}
 		});
 	}

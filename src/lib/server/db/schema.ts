@@ -108,6 +108,8 @@ export const testruns = pgTable('testruns', {
 			'skipped'
 		] as const satisfies PlaywrightTestCase['expectedStatus'][]
 	}),
+	startedAt: timestamp('started_at').notNull(),
+	duration: interval('duration', { fields: 'hour to second' }),
 	retries: integer('retries').notNull(),
 	retriesLimit: integer('retries_limit').notNull(),
 	timeoutMs: integer('timeout_ms').notNull()
