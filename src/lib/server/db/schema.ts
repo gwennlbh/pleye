@@ -31,7 +31,7 @@ export const apiKeys = pgTable(
 		key: text('key').notNull(),
 		repositoryId: integer('repository_id').notNull()
 	},
-	(t) => [uniqueIndex('key').on(t.key)]
+	(t) => [uniqueIndex('api_keys_key').on(t.key)]
 );
 
 export const repositories = pgTable(
