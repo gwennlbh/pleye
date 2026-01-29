@@ -13,6 +13,7 @@
  * @property {number} githubRunId ID of the current GitHub run we're on, ${{ github.run_id }}
  * @property {string} commitSha Current commit SHA
  * @property {string} branch Current branch name
+ * @property {boolean} [debug] Whether to enable debug logging
  * @property {number | undefined | null} [pullRequestNumber] Pull request number, if any
  */
 
@@ -28,6 +29,8 @@ export default class Pleye {
 	#repositoryGitHubId;
 	/** @type {RunData} */
 	#runData;
+	/** @type {boolean} */
+	#debugging = false;
 	/**
 	 * Stores the current step index for each test.
 	 * Test are keyed by a JSON stringified version of their TestIdentifierParams.
@@ -40,10 +43,11 @@ export default class Pleye {
 	 * @param {PleyeParams} params
 	 */
 	constructor(params) {
-		const { apiKey, serverOrigin, repositoryGitHubId, ...runData } = params;
+		const { apiKey, serverOrigin, repositoryGitHubId, debug, ...runData } = params;
 		this.#apiKey = apiKey;
 		this.#serverOrigin = serverOrigin;
 		this.#repositoryGitHubId = repositoryGitHubId;
+		this.#debugging = debug ?? false;
 		this.#runData = {
 			startedAt: new Date(),
 			...runData
@@ -209,6 +213,11 @@ export default class Pleye {
 				Authorization: `Bearer ${this.#apiKey}`
 			},
 			body: JSON.stringify(payload)
+		}).then((res) => {
+			if (!this.#debugging) return;
+			if (res.ok) return;
+			console.error(`Failed to send ${event} payload:`, res.status, res.statusText);
+			console.error('Payload was:', payload);
 		});
 	}
 
