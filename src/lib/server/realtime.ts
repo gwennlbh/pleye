@@ -49,6 +49,8 @@ export function push<E extends EventKind>(
 	key: E,
 	...data: { [E in EventKind]: EventData[E] extends [string, ...infer Args] ? Args : never }[E]
 ): void {
+	console.log(`Pushing event ${key} with`, data);
+
 	warehouse.push([
 		key,
 		nanoid(10),
@@ -68,11 +70,15 @@ export function subscribe<Filters extends { [E in EventKind]?: EventFilter<E> }>
 ): ReadableStream<EventOfKind<Extract<keyof Filters, EventKind>>> {
 	let interval: NodeJS.Timeout;
 
+	console.log(`Subscribing to ${Object.keys(filters).join(', ')} with`, filters);
+
 	return new ReadableStream<EventOfKind<Extract<keyof Filters, EventKind>>>({
 		start(controller) {
 			/** UUIDs of updates we've already seen */
 			// Initialize to all warehouse UUIDs to avoid sending old data on initial subscription
 			const seen = new Set(warehouse.filter(([key]) => key in filters).map(([_, uuid]) => uuid));
+
+			console.log(`Marking ${seen.size} existing events as seen`);
 
 			interval = setInterval(() => {
 				/** Indices in warehouse[key] of what to pop */
@@ -86,7 +92,10 @@ export function subscribe<Filters extends { [E in EventKind]?: EventFilter<E> }>
 
 					if (repository !== filter.repositoryId) continue;
 					if (filter.githubJobId && !filter.githubJobId.includes(job)) continue;
-					if (filter.test && !(!extra || filter.test.some((test) => objectsEqual(test, extra)))) continue;
+					if (filter.test && !(!extra || filter.test.some((test) => objectsEqual(test, extra))))
+						continue;
+
+					console.log(`Sending update`, update);
 
 					seen.add(uuid);
 					// @ts-expect-error TODO: fix typing here
