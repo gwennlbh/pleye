@@ -1,9 +1,9 @@
-import { errors, results, testruns, tests } from '$lib/server/db/schema';
+import { errors, results, steps, testruns, tests } from '$lib/server/db/schema';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
 import { findTestRun, parsePayload, TestIdentifier } from '../common';
 import { db } from '$lib/server/db';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { json } from '@sveltejs/kit';
 import { push } from '$lib/server/realtime.js';
 
@@ -13,7 +13,6 @@ export const _Body = type({
 	githubJobId: 'number',
 	outcome: Outcome,
 	test: TestIdentifier,
-	'stepsCount?': 'undefined | number > 0',
 	result: createInsertSchema(results)
 		.omit('id', 'testrunId')
 		.and({
@@ -26,14 +25,13 @@ export async function POST({ params, request }) {
 
 	let testrun = await findTestRun(params, data.githubJobId, data.test);
 
-	if (data.stepsCount) {
-		await db
-			.update(tests)
-			.set({
-				stepsCount: data.stepsCount
-			})
-			.where(eq(tests.id, testrun.testId))
-			.returning();
+	const stepsCount = await db.$count(
+		steps,
+		and(eq(steps.testrunId, testrun.id), eq(steps.retry, testrun.retries))
+	);
+
+	if (stepsCount > 0) {
+		await db.update(tests).set({ stepsCount }).where(eq(tests.id, testrun.testId)).returning();
 	}
 
 	const [result] = await db

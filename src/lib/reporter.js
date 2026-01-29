@@ -187,7 +187,6 @@ export default class Pleye {
 			githubJobId: this.#runData.githubJobId,
 			test: this.#testIdentifierParams(test),
 			outcome: test.outcome(),
-			stepsCount: result.steps.length || undefined,
 			result: {
 				duration: toISOInterval(result.duration),
 				annotations: result.annotations,
