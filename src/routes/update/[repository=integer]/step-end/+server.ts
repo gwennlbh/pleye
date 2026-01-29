@@ -1,10 +1,11 @@
 import { db } from '$lib/server/db/index.js';
-import { errors, steps } from '$lib/server/db/schema';
-import { json } from '@sveltejs/kit';
+import { errors, steps, repositories, runs } from '$lib/server/db/schema';
+import { error, json } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
 import { and, eq } from 'drizzle-orm';
 import { findTestRun, parsePayload, StepIdentifier } from '../common';
+import { workflowJobURL } from '$lib/github.js';
 
 export const _Body = type({
 	githubJobId: 'number',
@@ -25,6 +26,20 @@ export async function POST({ request, params }) {
 		})
 		.where(and(eq(steps.testrunId, testrun.id), eq(steps.index, data.step.index)))
 		.returning();
+
+	if (!step) {
+		const run = await db.query.runs.findFirst({
+			where: eq(runs.id, testrun.runId)
+		});
+		const repo = await db.query.repositories.findFirst({
+			where: eq(repositories.id, Number(params.repository))
+		});
+
+		return error(
+			404,
+			`Could not find a step with index ${data.step.index} for test run ${testrun.id}. See ${workflowJobURL(repo!, run!, data)}`
+		);
+	}
 
 	if (data.error) {
 		await db.insert(errors).values({
