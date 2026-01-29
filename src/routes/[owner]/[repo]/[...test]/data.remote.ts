@@ -41,7 +41,7 @@ export const runsOfTest = query(type('number'), async (id) => {
 			tables.steps.testrunId,
 			testruns.map((tr) => tr.id)
 		),
-		columns: { title: true, category: true, testrunId: true, duration: true }
+		columns: { title: true, category: true, testrunId: true, duration: true, retry: true }
 	});
 
 	return testruns.map((run) => ({

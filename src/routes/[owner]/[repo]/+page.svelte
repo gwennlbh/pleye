@@ -46,9 +46,11 @@
 					{basename(filepath)} ({tests.length} tests)
 				</summary>
 				<ul>
-					{#each tests as { title, path, runs }}
+					{#each tests as { title, path, runs, stepsCount, id } (id)}
 						{@const ongoing = runs.find((run) => !run.outcome)}
 						<li>
+							[{stepsCount}]
+
 							{#if ongoing}
 								<code title={formatDistanceToNow(ongoing.startedAt, { addSuffix: true })}>
 									[ONGOING]
