@@ -3,12 +3,27 @@
 	import { basename } from '$lib/utils.js';
 	import { formatDistanceToNow } from 'date-fns';
 	import { projectsOfRepo, repository, testsOfRepoByFilename } from './data.remote.js';
+	import { browser } from '$app/environment';
 
 	const { params } = $props();
 
-	const { id } = $derived(await repository(params));
+	const { id, githubId } = $derived(await repository(params));
 	const projects = $derived(await projectsOfRepo(id));
 	const testsByFile = $derived(await testsOfRepoByFilename(id));
+
+	$effect(() => {
+		if (!browser) return;
+
+		const updates = new EventSource(
+			resolve('/subscribe/repositories/[repository=integer]', {
+				repository: githubId.toString()
+			})
+		);
+
+		updates.onmessage = (event) => {
+			console.log('Got update!', event.data);
+		};
+	});
 </script>
 
 <h1>{params.owner}/{params.repo}</h1>
