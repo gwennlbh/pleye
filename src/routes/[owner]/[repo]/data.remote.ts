@@ -1,6 +1,7 @@
 import { query } from '$app/server';
 import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
+import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { and, eq, inArray } from 'drizzle-orm';
 
@@ -13,7 +14,7 @@ export const repository = query(type({ owner: 'string', repo: 'string' }), async
 	});
 
 	if (!repo) {
-		throw new Error(`Repository at https://github.com/${params.owner}/${params.repo} not found.`);
+		error(404, `Repository at https://github.com/${params.owner}/${params.repo} not found.`);
 	}
 
 	return repo;
