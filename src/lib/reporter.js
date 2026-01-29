@@ -8,8 +8,9 @@
  * @typedef {object} PleyeParams
  * @property {string} apiKey API Key to use
  * @property {string} serverOrigin Origin of the Pleye server, e.g. https://pleye.example.com
- * @property {number} repositoryGitHubId Github ID of the current repository
- * @property {number} githubJobId ID of the current GitHub job we're on
+ * @property {number} repositoryGitHubId Github ID of the current repository, ${{ github.repository_id }}
+ * @property {number} githubJobId ID of the current GitHub job we're on, ${{ github.job.check_run_id }}
+ * @property {number} githubRunId ID of the current GitHub run we're on, ${{ github.run_id }}
  * @property {string} commitSha Current commit SHA
  * @property {string} branch Current branch name
  * @property {number | undefined | null} [pullRequestNumber] Pull request number, if any
@@ -27,10 +28,10 @@ export default class Pleye {
 	#repositoryGitHubId;
 	/** @type {RunData} */
 	#runData;
-	/** 
+	/**
 	 * Stores the current step index for each test.
 	 * Test are keyed by a JSON stringified version of their TestIdentifierParams.
-	 * @type {Map<string, number>} 
+	 * @type {Map<string, number>}
 	 */
 	#stepIndices = new Map();
 
@@ -146,6 +147,8 @@ export default class Pleye {
 		if (!project) {
 			return;
 		}
+
+		this.#stepIndices.set(this.stepIndicesKey(test), -1);
 
 		this.#sendPayload('test-begin', {
 			githubJobId: this.#runData.githubJobId,
