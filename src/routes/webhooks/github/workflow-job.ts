@@ -8,24 +8,28 @@ export const WorkflowJobEvent = type({
 	action: 'string',
 	repository: {
 		id: 'number',
-		owner: 'string',
-		repo: 'string'
+		repo: 'string',
+		owner: {
+			login: 'string'
+		}
 	},
 	workflow_job: {
 		id: 'number',
 		// XXX: not official, see https://github.com/github/rest-api-description/issues/1634
 		// TODO: add a catch-all for other values
-		conclusion: type.enumerated(
-			'success',
-			'failure',
-			'neutral',
-			'cancelled',
-			'timed_out',
-			'action_required',
-			'stale',
-			'skipped'
-		),
-		completed_at: 'string.date.iso.parse',
+		conclusion: type
+			.enumerated(
+				'success',
+				'failure',
+				'neutral',
+				'cancelled',
+				'timed_out',
+				'action_required',
+				'stale',
+				'skipped'
+			)
+			.or('null'),
+		completed_at: 'string.date.iso.parse | null',
 		started_at: 'string.date.iso.parse'
 	}
 });
@@ -42,7 +46,7 @@ export async function onWorkflowJob(payload: unknown) {
 	const data = WorkflowJobEvent.assert(payload);
 
 	// Also take queued events to create repository before the testing starts, if it is missing
-	if (payload.action !== 'completed' && payload.action !== 'queued') return json({ ok: 'ignored' });
+	if (data.action !== 'completed' && data.action !== 'queued') return json({ ok: 'ignored' });
 
 	// Get repository
 	let repository = await db.query.repositories.findFirst({
@@ -54,12 +58,20 @@ export async function onWorkflowJob(payload: unknown) {
 
 		[repository] = await db.insert(repositories).values({
 			githubId: data.repository.id,
-			githubOwner: data.repository.owner,
+			githubOwner: data.repository.owner.login,
 			githubRepo: data.repository.repo
 		});
 	}
 
-	if (payload.action !== "completed") return json({ ok: 'ignored' });
+	if (data.action !== 'completed') return json({ ok: 'ignored' });
+
+	if (!data.workflow_job.conclusion) {
+		error(400, 'Invalid workflow_job payload: missing conclusion');
+	}
+
+	if (!data.workflow_job.completed_at) {
+		error(400, 'Invalid workflow_job payload: missing completed_at');
+	}
 
 	// Search for a run that matches the given job ID and update its status to completed
 	const run = await db.query.runs.findFirst({
