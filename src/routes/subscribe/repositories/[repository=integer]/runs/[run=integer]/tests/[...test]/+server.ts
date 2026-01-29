@@ -25,6 +25,11 @@ export async function GET({ params }) {
 			'test-begin': filters,
 			'step-begin': filters,
 			'test-end': filters
-		})
+		}),
+		{
+			headers: {
+				'Content-Type': 'text/event-stream'
+			}
+		}
 	);
 }
