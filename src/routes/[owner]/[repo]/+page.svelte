@@ -30,12 +30,13 @@
 					{basename(filepath)} ({tests.length} tests)
 				</summary>
 				<ul>
-					{#each tests as { title, path, id }}
+					{#each tests as { title, path }}
 						<li>
 							<a
-								href={resolve('/[owner]/[repo]/[test]', {
+								href={resolve('/[owner]/[repo]/[...filepath]/tests/[...test]', {
 									...params,
-									test: id.toString()
+									test: [...path, title].join('/'),
+									filepath: filepath.slice(1)
 								})}
 							>
 								{[...path, title].join(' › ')}
