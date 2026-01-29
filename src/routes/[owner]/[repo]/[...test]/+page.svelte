@@ -3,6 +3,7 @@
 	import { projectsOfRepo, repository } from '../data.remote.js';
 	import { testInRepo, runsOfTest } from './data.remote.js';
 	import { resolve } from '$app/paths';
+	import { workflowJobURL } from '$lib/github.js';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
@@ -32,7 +33,7 @@
 					]
 				</code>
 			{/if}
-			Run #{run.ciRun?.githubJobId} on
+			Run <a rel="external" target="_blank" href="{ workflowJobURL(repo, run.ciRun).toString() }">#{run.ciRun.githubJobId}</a> on
 			<a
 				href={resolve('/[owner]/[repo]/projects/[project]', {
 					...params,

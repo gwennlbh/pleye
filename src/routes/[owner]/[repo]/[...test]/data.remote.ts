@@ -71,6 +71,6 @@ export const runsOfTest = query(type('number'), async (id) => {
 	return testruns.map((run) => ({
 		...run,
 		completedSteps: completedSteps.filter((step) => step.testrunId === run.id),
-		ciRun: ciRuns.find((r) => r.id === run.runId)
+		ciRun: ciRuns.find((r) => r.id === run.runId)!
 	}));
 });
