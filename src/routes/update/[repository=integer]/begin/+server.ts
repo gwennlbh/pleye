@@ -5,6 +5,7 @@ import { json } from '@sveltejs/kit';
 import { createInsertSchema } from 'drizzle-arktype';
 import { findRepository, parsePayload } from '../common.js';
 import { and, eq } from 'drizzle-orm';
+import { push } from '$lib/server/realtime.js';
 
 export const _Body = type({
 	run: createInsertSchema(runs).omit('id', 'repositoryId', 'completedAt', 'result', 'status'),
@@ -45,6 +46,8 @@ export async function POST({ request, params }) {
 			...data.run
 		})
 		.returning();
+
+	push('begin', repository.githubId, run.githubJobId);
 
 	return json({ run });
 }

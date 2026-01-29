@@ -4,12 +4,31 @@
 	import { testInRepo, runsOfTest } from './data.remote.js';
 	import { resolve } from '$app/paths';
 	import { workflowJobURL } from '$lib/github.js';
+	import type { EventOfKind } from '$lib/server/realtime.js';
+	import { browser } from '$app/environment';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
 	const test = $derived(await testInRepo({ repoId: repo.id, ...params }));
 	const runs = $derived(await runsOfTest(test.id));
 	const projects = $derived(await projectsOfRepo(repo.id));
+
+	$effect(() => {
+		if (!browser) return;
+
+		const updates = new EventSource(
+			resolve('/subscribe/repositories/[repository=integer]/runs/[run=integer]/tests/[...test]', {
+				repository: repo.githubId.toString(),
+				run: runs.at(0)?.ciRun.githubRunId.toString() ?? '',
+				test: params.test
+			})
+		);
+
+		updates.onmessage = (event) => {
+			const data = event.data as EventOfKind<'step-begin' | 'test-begin' | 'test-end' | 'end'>;
+			console.log('Got update!', event, data);
+		};
+	});
 </script>
 
 <h1>
@@ -33,7 +52,11 @@
 					]
 				</code>
 			{/if}
-			Run <a rel="external" target="_blank" href="{ workflowJobURL(repo, run.ciRun).toString() }">#{run.ciRun.githubJobId}</a> on
+			Run
+			<a rel="external" target="_blank" href={workflowJobURL(repo, run.ciRun).toString()}
+				>#{run.ciRun.githubJobId}</a
+			>
+			on
 			<a
 				href={resolve('/[owner]/[repo]/projects/[project]', {
 					...params,

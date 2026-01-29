@@ -1,42 +1,18 @@
 import { query } from '$app/server';
+import { parseTestPathParam } from '$lib/params';
 import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
 import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 
-const FILENAME_REGEX = /^(.*?)\.(spec|test).(jsx?|tsx?)$/;
-
 export const testInRepo = query(type({ repoId: 'number', test: 'string' }), async (params) => {
-	// The logic to find what part of [...test] is the filepath vs path+title:
-	// we consider segments from the start, and up until (including) the first segment that
-	// matches FILENAME_REGEX to be part of the filepath. The remaining segments are path+title,
-	// with the last segment being the title, and the rest being the path.
-	let filepath = [] as string[];
-	let pathAndTitle = [] as string[];
-	let accumulatingFilepath = true;
-
-	for (const segment of params.test.split('/')) {
-		if (segment.match(FILENAME_REGEX)) {
-			filepath.push(segment);
-			accumulatingFilepath = false;
-			continue;
-		}
-
-		if (accumulatingFilepath) {
-			filepath.push(segment);
-		} else {
-			pathAndTitle.push(segment);
-		}
-	}
-
-	const title = pathAndTitle.pop()!;
-	const path = pathAndTitle;
+	const { filePath, path, title } = parseTestPathParam(params.test);
 
 	const test = await db.query.tests.findFirst({
 		where: and(
 			eq(tables.tests.repositoryId, params.repoId),
-			eq(tables.tests.filePath, '/' + filepath.join('/')),
+			eq(tables.tests.filePath, filePath),
 			eq(tables.tests.path, path),
 			eq(tables.tests.title, title)
 		)
