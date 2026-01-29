@@ -37,14 +37,55 @@ export const testsOfRepoByFilename = query(type('number'), async (repo) => {
 		where: inArray(
 			tables.testruns.testId,
 			tests.map((t) => t.id)
-		),
-		columns: { testId: true, outcome: true, expectedStatus: true, startedAt: true }
+		)
+	});
+
+	const runs = await db.query.runs.findMany({
+		where: inArray(
+			tables.runs.id,
+			testruns.map((tr) => tr.runId)
+		)
 	});
 
 	const testWithRuns = tests.map((t) => ({
 		...t,
-		runs: testruns.filter((tr) => tr.testId === t.id)
+		testruns: testruns
+			.filter((tr) => tr.testId === t.id)
+			.map((tr) => ({
+				...tr,
+				run: runs.find((r) => r.id === tr.runId)!
+			}))
 	}));
 
 	return Map.groupBy(testWithRuns, (t) => t.filePath);
+});
+
+export const flakyTests = query(type('number'), async (repoId) => {
+	const runs = await db.query.runs.findMany({
+		where: eq(tables.runs.repositoryId, repoId)
+	});
+
+	const testruns = await db.query.testruns.findMany({
+		where: and(
+			inArray(
+				tables.testruns.runId,
+				runs.map((r) => r.id)
+			),
+			inArray(tables.testruns.outcome, ['flaky', 'unexpected'])
+		)
+	});
+
+	const tests = await db.query.tests.findMany({
+		where: inArray(
+			tables.tests.id,
+			testruns.map((tr) => tr.testId)
+		)
+	});
+
+	return tests
+		.map((test) => ({
+			...test,
+			testruns: testruns.filter((tr) => tr.testId === test.id)
+		}))
+		.toSorted((a, b) => b.testruns.length - a.testruns.length);
 });

@@ -29,24 +29,49 @@ export const runsOfTest = query(type('number'), async (id) => {
 		orderBy: [desc(tables.testruns.startedAt)]
 	});
 
-	const ciRuns = await db.query.runs.findMany({
+	const runs = await db.query.runs.findMany({
 		where: inArray(
 			tables.runs.id,
 			testruns.map((tr) => tr.runId)
 		)
 	});
 
-	const completedSteps = await db.query.steps.findMany({
+	const steps = await db.query.steps.findMany({
 		where: inArray(
 			tables.steps.testrunId,
 			testruns.map((tr) => tr.id)
-		),
-		columns: { title: true, category: true, testrunId: true, duration: true, retry: true }
+		)
 	});
 
-	return testruns.map((run) => ({
-		...run,
-		completedSteps: completedSteps.filter((step) => step.testrunId === run.id),
-		ciRun: ciRuns.find((r) => r.id === run.runId)!
+	const results = await db.query.results.findMany({
+		where: inArray(
+			tables.results.testrunId,
+			testruns.map((tr) => tr.id)
+		)
+	});
+
+	const errors = await db.query.errors.findMany({
+		where: inArray(
+			tables.errors.resultId,
+			results.map((res) => res.id)
+		)
+	});
+
+	const richTestruns = testruns.map((testrun) => ({
+		...testrun,
+		steps: steps
+			.filter((step) => step.testrunId === testrun.id)
+			.map((step) => ({
+				...step,
+				errors: errors.filter((err) => err.stepId === step.id)
+			})),
+		run: runs.find((r) => r.id === testrun.runId)!,
+		result: results.find((res) => res.testrunId === testrun.id) || null,
+		errors: errors.filter((err) => {
+			const result = results.find((res) => res.testrunId === testrun.id);
+			return result ? err.resultId === result.id : false;
+		})
 	}));
+
+	return Map.groupBy(richTestruns, (tr) => tr.run.pullRequestNumber || tr.run.branch);
 });
