@@ -27,6 +27,12 @@ export default class Pleye {
 	#repositoryGitHubId;
 	/** @type {RunData} */
 	#runData;
+	/** 
+	 * Stores the current step index for each test.
+	 * Test are keyed by a JSON stringified version of their TestIdentifierParams.
+	 * @type {Map<string, number>} 
+	 */
+	#stepIndices = new Map();
 
 	/**
 	 *
@@ -87,12 +93,18 @@ export default class Pleye {
 			return;
 		}
 
+		const testKey = this.stepIndicesKey(test);
+		const index = (this.#stepIndices.get(testKey) ?? -1) + 1;
+		this.#stepIndices.set(testKey, index);
+
 		this.#sendPayload('step-begin', {
 			githubJobId: this.#runData.githubJobId,
-			test: testIdentifierParams(test),
+			test: this.#testIdentifierParams(test),
 			step: {
+				index,
 				title: step.titlePath().at(-1) ?? '',
 				path: step.titlePath().slice(0, -1),
+
 				startedAt: step.startTime,
 				annotations: step.annotations,
 				category: toStepCategory(step.category),
@@ -111,7 +123,7 @@ export default class Pleye {
 	 * @param {PW.TestStep} step
 	 */
 	onStepEnd(test, result, step) {
-		const stepIdentifier = stepIdentifierParams(test, step);
+		const stepIdentifier = this.#stepIdentifierParams(test);
 		if (!stepIdentifier) return;
 
 		this.#sendPayload('step-end', {
@@ -164,7 +176,7 @@ export default class Pleye {
 	onTestEnd(test, result) {
 		this.#sendPayload('test-end', {
 			githubJobId: this.#runData.githubJobId,
-			test: testIdentifierParams(test),
+			test: this.#testIdentifierParams(test),
 			outcome: test.outcome(),
 			stepsCount: result.steps.length || undefined,
 			result: {
@@ -195,6 +207,43 @@ export default class Pleye {
 			},
 			body: JSON.stringify(payload)
 		});
+	}
+
+	/**
+	 *
+	 * @param {PW.TestCase} test
+	 * @returns {import('../routes/update/[repository]/common').StepIdentifierParams | undefined}
+	 */
+	#stepIdentifierParams(test) {
+		const index = this.#stepIndices.get(this.stepIndicesKey(test));
+
+		if (index === undefined) {
+			console.error('Step index not found for test:', test.titlePath().join(' > '));
+			console.error('Step indices map is', this.#stepIndices);
+			return undefined;
+		}
+
+		return { index, test: this.#testIdentifierParams(test) };
+	}
+
+	/**
+	 *
+	 * @param {PW.TestCase} test
+	 */
+	stepIndicesKey(test) {
+		return JSON.stringify(this.#testIdentifierParams(test));
+	}
+
+	/**
+	 *
+	 * @param {PW.TestCase} test
+	 * @returns {import('../routes/update/[repository]/common').TestIdentifierParams}
+	 */
+	#testIdentifierParams(test) {
+		return {
+			filePath: test.location.file,
+			...splitTitlePath(test.titlePath())
+		};
 	}
 }
 
@@ -282,35 +331,6 @@ function climbToCauseError(error) {
 	}
 
 	return error;
-}
-
-/**
- *
- * @param {PW.TestCase} test
- * @param {PW.TestStep} step
- * @returns {import('../routes/update/[repository]/common').StepIdentifierParams | undefined}
- */
-function stepIdentifierParams(test, step) {
-	// TODO handle steps without location?
-	if (!step.location) return;
-
-	return {
-		test: testIdentifierParams(test),
-		filePath: step.location.file,
-		...splitTitlePath(step.titlePath())
-	};
-}
-
-/**
- *
- * @param {PW.TestCase} test
- * @returns {import('../routes/update/[repository]/common').TestIdentifierParams}
- */
-function testIdentifierParams(test) {
-	return {
-		filePath: test.location.file,
-		...splitTitlePath(test.titlePath())
-	};
 }
 
 /**

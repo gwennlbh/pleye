@@ -23,14 +23,7 @@ export async function POST({ request, params }) {
 		.set({
 			duration: data.duration
 		})
-		.where(
-			and(
-				eq(steps.testrunId, testrun.id),
-				eq(steps.filePath, data.step.filePath),
-				eq(steps.path, data.step.path),
-				eq(steps.title, data.step.title)
-			)
-		)
+		.where(and(eq(steps.testrunId, testrun.id), eq(steps.index, data.step.index)))
 		.returning();
 
 	if (data.error) {

@@ -23,9 +23,7 @@ export const TestIdentifier = type({
 });
 
 export const StepIdentifier = type({
-	title: 'string',
-	path: 'string[]',
-	filePath: 'string',
+	index: 'number.integer > 0',
 	test: TestIdentifier
 });
 

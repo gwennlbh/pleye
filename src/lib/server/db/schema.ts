@@ -213,6 +213,8 @@ export const steps = pgTable(
 			.notNull()
 			.references(() => testruns.id, { onDelete: 'cascade' }),
 
+		// Index steps within a testrun
+		index: integer('index').notNull(),
 		title: text('title').notNull(),
 		path: stringArray('path').notNull(),
 		annotations: json('annotations').$type<PlaywrightTestStep['annotations']>().notNull(),
@@ -238,7 +240,7 @@ export const steps = pgTable(
 	},
 	(t) => [
 		index('steps_by_testrun').on(t.testrunId),
-		uniqueIndex('steps_testrun_and_path').on(t.testrunId, t.filePath, t.path, t.title)
+		uniqueIndex('steps_testrun_and_index').on(t.testrunId, t.index)
 	]
 );
 
