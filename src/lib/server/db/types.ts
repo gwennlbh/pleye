@@ -8,10 +8,18 @@ export const stringArray = customType<{ data: string[] }>({
 		return 'text';
 	},
 	fromDriver(value) {
+		if (Array.isArray(value)) {
+			return value;
+		}
+
 		if (typeof value !== 'string') {
-			throw new Error('Invalid data type for titleAndPath');
+			console.error(value);
+			throw new Error(`Invalid data type for titleAndPath: ${typeof value} ${value}`);
 		}
 
 		return JSON.parse(value);
+	},
+	toDriver(value) {
+		return JSON.stringify(value);
 	}
 });

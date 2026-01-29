@@ -8,7 +8,7 @@ export async function GET() {
 		'// @ts-nocheck',
 		'',
 		`// This script is served by Pleye, on /reporter.js of your instance.`,
-		`// Downloaded at: ${new Date().toISOString()}`,
+		`// Pleye version ${process.env.VERSION ?? "(unknown)"}`,
 		'',
 		'',
 		reporterScript
