@@ -153,6 +153,7 @@ export default class Pleye {
 		}
 
 		this.#stepIndices.set(this.stepIndicesKey(test), -1);
+		if (this.#debugging) console.info('[Pleye] onTestBegin, stepIndices are', this.#stepIndices);
 
 		this.#sendPayload('test-begin', {
 			githubJobId: this.#runData.githubJobId,
