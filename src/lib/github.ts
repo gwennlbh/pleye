@@ -7,8 +7,7 @@ export function workflowRunURL(
 
 export function workflowJobURL(
 	{ githubOwner, githubRepo }: { githubOwner: string; githubRepo: string },
-	{ githubRunId }: { githubRunId: number | null },
-	{ githubJobId }: { githubJobId: number }
+	{ githubRunId, githubJobId }: { githubRunId: number | null; githubJobId: number }
 ): URL {
 	const url = workflowRunURL({ githubOwner, githubRepo }, { githubRunId });
 	url.pathname += `/jobs/${githubJobId}`;

@@ -32,12 +32,12 @@ export async function POST({ request, params }) {
 			where: eq(runs.id, testrun.runId)
 		});
 		const repo = await db.query.repositories.findFirst({
-			where: eq(repositories.id, Number(params.repository))
+			where: eq(repositories.githubId, Number(params.repository))
 		});
 
 		return error(
 			404,
-			`Could not find a step with index ${data.step.index} for test run ${testrun.id}. See ${workflowJobURL(repo!, run!, data)}`
+			`Could not find a step with index ${data.step.index} for test run ${testrun.id}. See ${workflowJobURL(repo!, run!)}`
 		);
 	}
 
