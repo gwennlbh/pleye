@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { basename } from '$lib/utils.js';
+	import { formatDistanceToNow } from 'date-fns';
 	import { projectsOfRepo, repository, testsOfRepoByFilename } from './data.remote.js';
 
 	const { params } = $props();
@@ -15,7 +16,7 @@
 <h2>Projects</h2>
 
 <ul>
-	{#each projects as project}
+	{#each projects as [id, project] (id)}
 		<li>{project.name}</li>
 	{/each}
 </ul>
@@ -30,13 +31,18 @@
 					{basename(filepath)} ({tests.length} tests)
 				</summary>
 				<ul>
-					{#each tests as { title, path }}
+					{#each tests as { title, path, runs }}
+						{@const ongoing = runs.find((run) => !run.outcome)}
 						<li>
+							{#if ongoing}
+								<code title={formatDistanceToNow(ongoing.startedAt, { addSuffix: true })}>
+									[ONGOING]
+								</code>
+							{/if}
 							<a
-								href={resolve('/[owner]/[repo]/[...filepath]/tests/[...test]', {
+								href={resolve('/[owner]/[repo]/[...test]', {
 									...params,
-									test: [...path, title].join('/'),
-									filepath: filepath.slice(1)
+									test: [filepath.slice(1), ...path, title].join('/')
 								})}
 							>
 								{[...path, title].join(' › ')}
