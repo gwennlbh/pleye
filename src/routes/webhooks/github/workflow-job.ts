@@ -8,7 +8,7 @@ export const WorkflowJobEvent = type({
 	action: 'string',
 	repository: {
 		id: 'number',
-		repo: 'string',
+		name: 'string',
 		owner: {
 			login: 'string'
 		}
