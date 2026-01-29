@@ -59,9 +59,8 @@ export function push<E extends EventKind>(
 
 export type EventFilter<E extends EventKind> = {
 	repositoryId: number;
-	githubJobId?: number | undefined;
-	githubRunId?: number | undefined;
-	test?: E extends `${'step' | 'test'}-${string}` ? TestIdentifierParams | undefined : undefined;
+	githubJobId?: number[] | undefined;
+	test?: E extends `${'step' | 'test'}-${string}` ? TestIdentifierParams[] | undefined : undefined;
 };
 
 export function subscribe<Filters extends { [E in EventKind]?: EventFilter<E> }>(
@@ -86,15 +85,11 @@ export function subscribe<Filters extends { [E in EventKind]?: EventFilter<E> }>
 					if (seen.has(uuid)) continue;
 
 					if (repository !== filter.repositoryId) continue;
-					if (filter.githubJobId !== undefined && job !== filter.githubJobId) continue;
-					if (
-						extra &&
-						filter.test &&
-						!objectsEqual(filter.test, 'test' in extra ? extra.test : extra)
-					)
-						continue;
+					if (filter.githubJobId && !filter.githubJobId.includes(job)) continue;
+					if (filter.test && !(!extra || filter.test.some((test) => objectsEqual(test, extra)))) continue;
 
 					seen.add(uuid);
+					// @ts-expect-error TODO: fix typing here
 					controller.enqueue(update);
 				}
 
