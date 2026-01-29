@@ -1,6 +1,5 @@
-FROM oven/bun:1.3.7
+FROM oven/bun:1.3.7 AS builder
 
-ARG VERSION=dev
 
 WORKDIR /app
 
@@ -9,11 +8,15 @@ COPY package.json  /app/package.json
 
 RUN bun install --frozen-lockfile
 
+FROM builder AS runner
+
 COPY . .
 
 RUN MASTER_KEY=buildingggggg DATABASE_URL=psql://building bun run build
 
-EXPOSE 3000
+ARG VERSION=dev
 ENV VERSION=$VERSION
+
+EXPOSE 3000
 
 CMD ["bun", "run", "build/index.js"]
