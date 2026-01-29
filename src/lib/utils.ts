@@ -19,3 +19,5 @@ export function objectsEqual<T extends {}>(a: T, b: T): boolean {
 export function escapeSlashes(str: string): string {
 	return str.replace(/\//g, '∕');
 }
+
+export type MapValues<T extends Map<any, any>> = NonNullable<ReturnType<T['get']>>

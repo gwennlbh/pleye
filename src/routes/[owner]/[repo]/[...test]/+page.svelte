@@ -6,6 +6,7 @@
 	import { projectsOfRepo, repository } from '../data.remote.js';
 	import { runsOfTest, testInRepo } from './data.remote.js';
 	import ExternalLink from '$lib/ExternalLink.svelte';
+	import type { MapValues } from '$lib/utils.js';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
@@ -24,9 +25,9 @@
 		return out;
 	}
 
-	type RichRun = typeof runs;
+	type RichRun = MapValues<typeof runs>[number];
 
-	function statusicon(outcome: (typeof runs)[number]['outcome']) {
+	function statusicon(outcome: RichRun['outcome']) {
 		switch (outcome) {
 			case 'expected':
 				return '✅';
