@@ -62,7 +62,7 @@ export const testsOfRepoByFilename = query(type('number'), async (repo) => {
 
 export const flakyTests = query(type('number'), async (repoId) => {
 	const runs = await db.query.runs.findMany({
-		where: eq(tables.runs.repositoryId, repoId)
+		where: and(eq(tables.runs.repositoryId, repoId), eq(tables.runs.branch, 'main'))
 	});
 
 	const testruns = await db.query.testruns.findMany({
