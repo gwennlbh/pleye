@@ -24,6 +24,7 @@ export const TestIdentifier = type({
 
 export const StepIdentifier = type({
 	index: 'number.integer > 0',
+	retry: 'number.integer >= 0',
 	test: TestIdentifier
 });
 

@@ -1,5 +1,5 @@
 /**
- * @import { Inputs } from '../routes/update/[repository]/inputs';
+ * @import { Inputs } from '../routes/update/[repository=integer]/inputs';
  * @import * as PW from '@playwright/test/reporter';
  * @typedef {Inputs['begin']['run']} RunData
  */
@@ -128,7 +128,7 @@ export default class Pleye {
 	 * @param {PW.TestStep} step
 	 */
 	onStepEnd(test, result, step) {
-		const stepIdentifier = this.#stepIdentifierParams(test);
+		const stepIdentifier = this.#stepIdentifierParams(test, result);
 		if (!stepIdentifier) return;
 
 		this.#sendPayload('step-end', {
@@ -230,9 +230,10 @@ export default class Pleye {
 	/**
 	 *
 	 * @param {PW.TestCase} test
+	 * @param {PW.TestResult} result
 	 * @returns {import('../routes/update/[repository=integer]/common').StepIdentifierParams | undefined}
 	 */
-	#stepIdentifierParams(test) {
+	#stepIdentifierParams(test, { retry }) {
 		const index = this.#stepIndices.get(this.stepIndicesKey(test));
 
 		if (index === undefined) {
@@ -241,7 +242,7 @@ export default class Pleye {
 			return undefined;
 		}
 
-		return { index, test: this.#testIdentifierParams(test) };
+		return { index, retry, test: this.#testIdentifierParams(test) };
 	}
 
 	/**

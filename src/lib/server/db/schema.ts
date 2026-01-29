@@ -212,7 +212,11 @@ export const steps = pgTable(
 			.notNull()
 			.references(() => testruns.id, { onDelete: 'cascade' }),
 
-		// Index steps within a testrun
+		// 0 for the first try, 1 for the first retry, etc.
+		// Corresponds with Result.retry
+		// TODO: remove .default(0)
+		retry: integer('retry').default(0).notNull(),
+		// Index steps within a testrun's try
 		index: integer('index').notNull(),
 		title: text('title').notNull(),
 		path: stringArray('path').notNull(),
@@ -239,7 +243,7 @@ export const steps = pgTable(
 	},
 	(t) => [
 		index('steps_by_testrun').on(t.testrunId),
-		uniqueIndex('steps_testrun_and_index').on(t.testrunId, t.index)
+		uniqueIndex('steps_testrun_retry_and_index').on(t.testrunId, t.retry, t.index)
 	]
 );
 
