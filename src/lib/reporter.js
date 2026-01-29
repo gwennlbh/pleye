@@ -107,6 +107,7 @@ export default class Pleye {
 			test: this.#testIdentifierParams(test),
 			step: {
 				index,
+				retry: result.retry,
 				title: step.titlePath().at(-1) ?? '',
 				path: step.titlePath().slice(0, -1),
 
