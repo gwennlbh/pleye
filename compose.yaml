@@ -1,6 +1,8 @@
 services:
   pleye:
-    build: .
+    build: 
+      context: .
+      args: [VERSION]
     ports:
       - 3000:3000
     env_file:
