@@ -59,7 +59,7 @@ export async function onWorkflowJob(payload: unknown) {
 		[repository] = await db.insert(repositories).values({
 			githubId: data.repository.id,
 			githubOwner: data.repository.owner.login,
-			githubRepo: data.repository.repo
+			githubRepo: data.repository.name
 		});
 	}
 
