@@ -4,6 +4,7 @@ import { json } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
 import { findTestRun, parsePayload, TestIdentifier } from '../common';
+import { push } from '$lib/server/realtime.js';
 
 export const _Body = type({
 	githubJobId: 'number',
@@ -16,12 +17,19 @@ export async function POST({ request, params }) {
 
 	const testrun = await findTestRun(params, data.githubJobId, data.test);
 
-	return await db
+	const [step] = await db
 		.insert(steps)
 		.values({
 			...data.step,
 			testrunId: testrun.id
 		})
-		.returning()
-		.then(([step]) => json({ step }));
+		.returning();
+
+	push('step-begin', testrun.runId, data.githubJobId, {
+		test: data.test,
+		index: step.index,
+		retry: step.retry
+	});
+
+	return json({ step });
 }

@@ -5,6 +5,7 @@ import { findTestRun, parsePayload, TestIdentifier } from '../common';
 import { db } from '$lib/server/db';
 import { eq } from 'drizzle-orm';
 import { json } from '@sveltejs/kit';
+import { push } from '$lib/server/realtime.js';
 
 const Outcome = createInsertSchema(testruns).get('outcome').extract('string');
 
@@ -58,6 +59,8 @@ export async function POST({ params, request }) {
 		})
 		.where(eq(testruns.id, testrun.id))
 		.returning();
+
+	push('test-end', testrun.runId, data.githubJobId, data.test);
 
 	return json({ testrun, result });
 }
