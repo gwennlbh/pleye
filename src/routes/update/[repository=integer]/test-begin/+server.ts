@@ -6,11 +6,18 @@ import { and, eq } from 'drizzle-orm';
 import { findRepository, findRun, parsePayload } from '../common';
 import { error, json } from '@sveltejs/kit';
 import { push } from '$lib/server/realtime.js';
+import { escapeSlashes } from '$lib/utils.js';
 
 export const _Body = type({
 	githubJobId: 'number',
 	projectName: 'string',
-	test: createInsertSchema(tests).omit('id', 'repositoryId', 'stepsCount'),
+	test: createInsertSchema(tests)
+		.omit('id', 'repositoryId', 'stepsCount')
+		.omit('title', 'path')
+		.and({
+			title: ['string', '=>', escapeSlashes],
+			path: ['string[]', '=>', (p) => p.map(escapeSlashes)]
+		}),
 	testrun: createInsertSchema(testruns).omit('id', 'testId', 'outcome', 'runId', 'projectId')
 });
 

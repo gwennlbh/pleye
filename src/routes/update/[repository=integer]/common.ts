@@ -1,5 +1,6 @@
 import { db } from '$lib/server/db';
 import { repositories, runs, testruns, tests } from '$lib/server/db/schema';
+import { escapeSlashes } from '$lib/utils';
 import { error } from '@sveltejs/kit';
 import { type, type Type } from 'arktype';
 import { and, eq } from 'drizzle-orm';
@@ -17,8 +18,8 @@ export async function findRepository(params: { repository: string }) {
 }
 
 export const TestIdentifier = type({
-	title: 'string',
-	path: 'string[]',
+	title: ['string', '=>', escapeSlashes],
+	path: type('string[]').pipe(segs => segs.map(escapeSlashes)),
 	filePath: 'string'
 });
 
