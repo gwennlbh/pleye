@@ -102,6 +102,8 @@ export const runs = pgTable(
 			.references(() => repositories.id, { onDelete: 'cascade' }),
 
 		githubJobId: bigint('github_job_id', { mode: 'number' }).notNull(),
+		// TODO: remove default 0 when we finished migrating
+		githubRunId: bigint('github_run_id', { mode: 'number' }).default(0),
 		commitSha: text('commit_sha').notNull(),
 		branch: text('branch').notNull(),
 		pullRequestNumber: integer('pull_request_number'),
