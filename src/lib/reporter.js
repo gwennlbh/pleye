@@ -214,10 +214,15 @@ export default class Pleye {
 				Authorization: `Bearer ${this.#apiKey}`
 			},
 			body: JSON.stringify(payload)
-		}).then((res) => {
+		}).then(async (res) => {
 			if (!this.#debugging) return;
 			if (res.ok) return;
-			console.error(`Failed to send ${event} payload:`, res.status, res.statusText);
+			console.error(
+				`Failed to send ${event.toString()} payload:`,
+				res.status,
+				res.statusText,
+				await res.text()
+			);
 			console.error('Payload was:', payload);
 		});
 	}
@@ -225,7 +230,7 @@ export default class Pleye {
 	/**
 	 *
 	 * @param {PW.TestCase} test
-	 * @returns {import('../routes/update/[repository]/common').StepIdentifierParams | undefined}
+	 * @returns {import('../routes/update/[repository=integer]/common').StepIdentifierParams | undefined}
 	 */
 	#stepIdentifierParams(test) {
 		const index = this.#stepIndices.get(this.stepIndicesKey(test));
@@ -250,7 +255,7 @@ export default class Pleye {
 	/**
 	 *
 	 * @param {PW.TestCase} test
-	 * @returns {import('../routes/update/[repository]/common').TestIdentifierParams}
+	 * @returns {import('../routes/update/[repository=integer]/common').TestIdentifierParams}
 	 */
 	#testIdentifierParams(test) {
 		return {
