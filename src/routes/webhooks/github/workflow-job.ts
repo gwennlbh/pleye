@@ -60,7 +60,7 @@ export async function onWorkflowJob(payload: unknown) {
 			githubId: data.repository.id,
 			githubOwner: data.repository.owner.login,
 			githubRepo: data.repository.name
-		});
+		}).returning();
 	}
 
 	if (data.action !== 'completed') return json({ ok: 'ignored' });
