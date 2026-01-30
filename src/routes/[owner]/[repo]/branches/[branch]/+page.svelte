@@ -9,6 +9,7 @@
 	import { runsOfBranch } from './data.remote';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { linkToTest } from '../../[...test]/links.js';
+	import StatusIcon from '$lib/StatusIcon.svelte';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
@@ -59,7 +60,7 @@
 {#snippet list(groupedRuns: typeof ongoing | typeof completed, openDetails = false)}
 	<ul>
 		{#each groupedRuns as [runId, runs] (runId)}
-			{@const { commitSha, commitTitle, commitAuthorUsername, commitAuthorName } = runs[0]}
+			{@const { commitSha, commitTitle, commitAuthorUsername, commitAuthorName, result } = runs[0]}
 			{@const startedAt = new Date(Math.min(...runs.map((r) => r.startedAt.getTime())))}
 			<li>
 				<details
@@ -74,15 +75,23 @@
 						}
 					}}
 				>
-					<summary>
-						<ExternalLink url={workflowRunURL(repo, { githubRunId: runId })}>#{runId}</ExternalLink>
+					<summary
+						class={{
+							success: result === 'passed',
+							failure: result === 'failed' || result === 'interrupted'
+						}}
+					>
+						<ExternalLink sneaky url={workflowRunURL(repo, { githubRunId: runId })}
+							>#{runId}</ExternalLink
+						>
 						{formatDistanceToNowStrict(startedAt, { addSuffix: true })}
-						<ExternalLink url={commitURL(repo, { commitSha })}>{commitSha.slice(0, 7)}</ExternalLink
+						<ExternalLink sneaky url={commitURL(repo, { commitSha })}
+							>{commitSha.slice(0, 7)}</ExternalLink
 						>
 						{commitTitle}
 						by
 						{#if commitAuthorUsername}
-							<ExternalLink url={userProfileURL(commitAuthorUsername)}>
+							<ExternalLink sneaky url={userProfileURL(commitAuthorUsername)}>
 								{commitAuthorName}
 							</ExternalLink>
 						{:else}
@@ -107,18 +116,18 @@
 							{@const expecteds = dones.filter((tr) => tr.outcome === 'expected')}
 
 							<li class="testrun" class:has-progress-bar={run.status === 'in_progress'}>
-								<ExternalLink sneaky url={workflowJobURL(repo, run)}>job</ExternalLink>
-								<span class="failure">
-									{#if failures.length > 0}{failures.length}✘{/if}
-								</span>
-								<span class="warning">
-									{#if flakies.length > 0}{flakies.length}~{/if}
-								</span>
-								<span class="success">
-									{#if successes.length > 0}{successes.length}✓{/if}
-								</span>
 								{#if run.status === 'in_progress'}
+									<span class="icon">…</span>
 									{@const currentStep = currentTestrun?.steps.at(-1)}
+									<span class="failure">
+										{#if failures.length > 0}{failures.length}✘{/if}
+									</span>
+									<span class="warning">
+										{#if flakies.length > 0}{flakies.length}~{/if}
+									</span>
+									<span class="success">
+										{#if successes.length > 0}{successes.length}✓{/if}
+									</span>
 									<span class="progress">
 										{dones.length + 1}/{run.testrunsCount}
 									</span>
@@ -127,7 +136,7 @@
 										{@const max = currentTestrun.test.stepsCount}
 										{@const value = (currentStep?.index ?? 0) + 1}
 
-										<span class="step-progress">
+										<span class="step-progress subdued">
 											{#if max > 0}
 												{((value / max) * 100).toFixed(0).padStart(2, ' ')}%
 											{:else}
@@ -136,9 +145,8 @@
 										</span>
 										<span class="rest">
 											{currentTestrun.test.title}
-											<span class="step">
+											<span class="step subdued">
 												{#if currentStep}
-													<progress {value} {max}></progress>
 													{[...currentStep.path, currentStep.title].join(' › ')}
 												{/if}
 											</span>
@@ -148,9 +156,13 @@
 										<span class="subdued">waiting...</span>
 									{/if}
 								{:else if run.result === 'interrupted'}
-									<span>— interrupted</span>
+									<span class="subdued">— interrupted</span>
 								{:else if run.result === 'passed'}
-									{#if flakies.length > 0}
+									{#if flakies.length === 0}
+										<StatusIcon outcome="expected" />
+										<span>{successes.length} passed</span>
+									{:else}
+										<StatusIcon outcome="flaky" />
 										<span class="flakies">
 											<span class="warning">
 												~ {flakies.length} flaky tests:
@@ -165,9 +177,10 @@
 										</span>
 									{/if}
 								{:else if run.result === 'failed'}
+									<StatusIcon outcome="unexpected" />
 									<span class="failures">
-										<span class="failure">failed:</span>
-										{#each failures as failure, i (failure.id)}
+										<span class="failure">{failures.length}/{dones.length} failed:</span>
+										{#each failures.slice(0, 4) as failure, i (failure.id)}
 											{#if i > 0},
 											{/if}
 											<a class="sneaky" href={linkToTest(params, failure.test, params.branch)}>
@@ -195,11 +208,14 @@
 
 	ul li {
 		display: grid;
-		grid-template-columns: max-content repeat(3, 3ch)  1fr ;
+		grid-template-columns: max-content 1fr;
+		gap: 0 0.75em;
+		overflow-x: hidden;
+		align-items: center;
+
 		&.has-progress-bar {
 			grid-template-columns: max-content repeat(3, 3ch) 5ch 100px 3ch 1fr 1fr;
 		}
-		gap: 0 0.75em;
 	}
 
 	li:not(:hover):not(:focus) .step {
@@ -209,4 +225,5 @@
 	details:open {
 		margin-bottom: 1em;
 	}
+
 </style>

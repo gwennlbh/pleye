@@ -53,3 +53,14 @@ li.empty {
 .warning {
 	color: orange;
 }
+
+progress {
+	appearance: none;
+	border: none;
+	background-color: transparent;
+	height: 5px;
+
+	&::-webkit-progress-value, &::-moz-progress-bar {
+		background-color: currentColor;
+	}
+}
