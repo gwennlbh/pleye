@@ -200,6 +200,7 @@ export default class Pleye {
 			githubJobId: this.#runData.githubJobId,
 			test: this.#testIdentifierParams(test),
 			outcome: test.outcome(),
+			stepsCount: (this.#stepIndices.get(this.stepIndicesKey(test)) ?? -1) + 1,
 			result: {
 				duration: toISOInterval(result.duration),
 				annotations: result.annotations,

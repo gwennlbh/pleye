@@ -13,6 +13,8 @@ export const _Body = type({
 	githubJobId: 'number',
 	outcome: Outcome,
 	test: TestIdentifier,
+	// Largest index of steps recorded + 1
+	stepsCount: 'number',
 	result: createInsertSchema(results)
 		.omit('id', 'testrunId')
 		.and({
@@ -25,13 +27,12 @@ export async function POST({ params, request }) {
 
 	let testrun = await findTestRun(params, data.githubJobId, data.test);
 
-	const stepsCount = await db.$count(
-		steps,
-		and(eq(steps.testrunId, testrun.id), eq(steps.retry, testrun.retries))
-	);
-
-	if (stepsCount > 0) {
-		await db.update(tests).set({ stepsCount }).where(eq(tests.id, testrun.testId)).returning();
+	if (data.stepsCount > 0) {
+		await db
+			.update(tests)
+			.set({ stepsCount: data.stepsCount })
+			.where(eq(tests.id, testrun.testId))
+			.returning();
 	}
 
 	const [result] = await db
