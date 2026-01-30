@@ -89,3 +89,12 @@ export const flakyTests = query(type('number'), async (repoId) => {
 		}))
 		.toSorted((a, b) => b.testruns.length - a.testruns.length);
 });
+
+export const branchesOfRepo = query(type('number'), async (repoId) => {
+	const branches = await db
+		.selectDistinct({ branch: tables.runs.branch })
+		.from(tables.runs)
+		.where(eq(tables.runs.repositoryId, repoId));
+
+	return branches.map((b) => b.branch);
+});

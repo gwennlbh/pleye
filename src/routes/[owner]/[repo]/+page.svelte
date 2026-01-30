@@ -2,14 +2,21 @@
 	import { resolve } from '$app/paths';
 	import { basename } from '$lib/utils.js';
 	import { formatDistanceToNow } from 'date-fns';
-	import { flakyTests, projectsOfRepo, repository, testsOfRepoByFilename } from './data.remote.js';
+	import {
+		branchesOfRepo,
+		flakyTests,
+		projectsOfRepo,
+		repository,
+		testsOfRepoByFilename
+	} from './data.remote.js';
 
 	const { params } = $props();
 
-	const { id, githubId } = $derived(await repository(params));
+	const { id } = $derived(await repository(params));
 	const projects = $derived(await projectsOfRepo(id));
 	const testsByFile = $derived(await testsOfRepoByFilename(id));
 	const flakies = $derived(await flakyTests(id));
+	const branches = $derived(await branchesOfRepo(id));
 </script>
 
 <h1>{params.owner}/{params.repo}</h1>
@@ -50,6 +57,23 @@
 					{name}
 				</a>
 			{/each}
+		</li>
+	{/each}
+</ul>
+
+<h2>Branches</h2>
+
+<ul>
+	{#each branches as branch (branch)}
+		<li>
+			<a
+				href={resolve('/[owner]/[repo]/branches/[branch]', {
+					...params,
+					branch
+				})}
+			>
+				{branch}
+			</a>
 		</li>
 	{/each}
 </ul>

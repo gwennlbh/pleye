@@ -1,15 +1,21 @@
 <script lang="ts">
+	import ExternalLink from '$lib/ExternalLink.svelte';
 	import { commitURL, workflowJobURL, workflowRunURL } from '$lib/github.js';
-	import { formatDistance, formatDistanceToNow, formatDuration } from 'date-fns';
+	import MaybeDetails from '$lib/MaybeDetails.svelte';
+	import { testrunIsOngoing } from '$lib/testruns.js';
+	import { formatDistanceToNow } from 'date-fns';
 	import { repository } from '../../data.remote';
 	import { progressOfTestrun, runsOfBranch } from './data.remote';
-	import { testrunIsOngoing } from '$lib/testruns.js';
-	import ExternalLink from '$lib/ExternalLink.svelte';
-	import MaybeDetails from '$lib/MaybeDetails.svelte';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
-	const { ongoing, completed } = $derived(await runsOfBranch({ ...params, repoId: repo.id }));
+	let { ongoing, completed } = $derived(await runsOfBranch({ ...params, repoId: repo.id }));
+
+	$effect(() => {
+		setInterval(() => {
+			void runsOfBranch({ ...params, repoId: repo.id }).refresh();
+		}, 1000);
+	});
 </script>
 
 <h1>Runs on {params.branch}</h1>
