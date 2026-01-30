@@ -85,7 +85,7 @@ export const tests = pgTable(
 		/** Point with coords (line, column) */
 		locationInFile: point('location_in_file').notNull(),
 		/** Latest-known steps count, updated at end of every test run, used for progress reporting */
-		stepsCount: integer('steps_count').notNull(),
+		stepsCount: integer('steps_count').notNull()
 	},
 	(t) => [
 		index('tests_by_repository').on(t.repositoryId),
@@ -105,8 +105,14 @@ export const runs = pgTable(
 		githubRunId: bigint('github_run_id', { mode: 'number' }).notNull(),
 		baseDirectory: text('base_directory').default(''),
 		commitSha: text('commit_sha').notNull(),
+		commitTitle: text('commit_title').notNull().default(''),
+		commitDescription: text('commit_description').notNull().default(''),
+		commitAuthorName: text('commit_author_name').notNull().default(''),
+		commitAuthorUsername: text('commit_author_username'),
+		commitAuthorEmail: text('commit_author_email').notNull().default(''),
 		branch: text('branch').notNull(),
 		pullRequestNumber: integer('pull_request_number'),
+		pullRequestTitle: text('pull_request_title'),
 		startedAt: timestamp('started_at').notNull(),
 		completedAt: timestamp('completed_at'),
 		/** Number of test runs to expect in this run */
