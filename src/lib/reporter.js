@@ -131,7 +131,7 @@ export default class Pleye {
 			return;
 		}
 
-		const testKey = this.stepIndicesKey(test);
+		const testKey = this.#stepIndicesKey(test);
 		const index = (this.#stepIndices.get(testKey) ?? -1) + 1;
 		this.#stepIndices.set(testKey, index);
 
@@ -164,7 +164,7 @@ export default class Pleye {
 			githubJobId: this.#runData.githubJobId,
 			step: stepIdentifier,
 			duration: toISOInterval(step.duration),
-			error: step.error ? toError(step.error) : undefined
+			error: step.error ? this.#toError(step.error) : undefined
 		});
 	}
 
@@ -181,7 +181,7 @@ export default class Pleye {
 			return;
 		}
 
-		this.#stepIndices.set(this.stepIndicesKey(test), -1);
+		this.#stepIndices.set(this.#stepIndicesKey(test), -1);
 		if (this.#debugging) console.info('[Pleye] onTestBegin, stepIndices are', this.#stepIndices);
 
 		// If we're gonna retry a test, the expected tests count increases
@@ -219,11 +219,11 @@ export default class Pleye {
 			githubJobId: this.#runData.githubJobId,
 			test: this.#testIdentifierParams(test),
 			outcome: test.outcome(),
-			stepsCount: (this.#stepIndices.get(this.stepIndicesKey(test)) ?? -1) + 1,
+			stepsCount: (this.#stepIndices.get(this.#stepIndicesKey(test)) ?? -1) + 1,
 			result: {
 				duration: toISOInterval(result.duration),
 				annotations: result.annotations,
-				errors: result.errors.map(toError),
+				errors: result.errors.map((e) => this.#toError(e)),
 				retry: result.retry,
 				startedAt: result.startTime,
 				status: result.status,
@@ -267,7 +267,7 @@ export default class Pleye {
 	 * @returns {import('../routes/update/[repository=integer]/common').StepIdentifierParams | undefined}
 	 */
 	#stepIdentifierParams(test, { retry }) {
-		const index = this.#stepIndices.get(this.stepIndicesKey(test));
+		const index = this.#stepIndices.get(this.#stepIndicesKey(test));
 
 		if (index === undefined) {
 			console.error('Step index not found for test:', test.titlePath().join(' > '));
@@ -282,7 +282,7 @@ export default class Pleye {
 	 *
 	 * @param {PW.TestCase} test
 	 */
-	stepIndicesKey(test) {
+	#stepIndicesKey(test) {
 		return JSON.stringify(this.#testIdentifierParams(test));
 	}
 
@@ -295,6 +295,22 @@ export default class Pleye {
 		return {
 			filePath: this.#relativeFilepath(test.location.file),
 			...splitTitlePath(test.titlePath())
+		};
+	}
+
+	/**
+	 *
+	 * @param {PW.TestError} error
+	 * @returns {NonNullable<Inputs['step-end']['error']>}
+	 */
+	#toError(error) {
+		const { location, message, stack, snippet } = climbToCauseError(error);
+		return {
+			message,
+			stack,
+			snippet,
+			filePath: location?.file ? this.#relativeFilepath(location.file) : null,
+			locationInFile: location ? [location.line, location.column] : null
 		};
 	}
 
@@ -357,22 +373,6 @@ function toISOInterval(durationMs) {
 	const milliseconds = durationMs % 1000;
 
 	return `PT${hours}H${minutes}M${seconds}.${milliseconds.toString().padStart(3, '0')}S`;
-}
-
-/**
- *
- * @param {PW.TestError} error
- * @returns {NonNullable<Inputs['step-end']['error']>}
- */
-function toError(error) {
-	const { location, message, stack, snippet } = climbToCauseError(error);
-	return {
-		message,
-		stack,
-		snippet,
-		filePath: location?.file ?? null,
-		locationInFile: location ? [location.line, location.column] : null
-	};
 }
 
 /**
