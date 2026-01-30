@@ -64,3 +64,10 @@ progress {
 		background-color: currentColor;
 	}
 }
+
+
+section.side-by-side {
+	display: flex;
+	flex-direction: row;
+	gap: 5em;
+}

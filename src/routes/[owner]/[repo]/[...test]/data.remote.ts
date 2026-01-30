@@ -1,10 +1,11 @@
 import { query } from '$app/server';
 import { parseTestPathParam } from '$lib/params';
+import { compareDesc as compareDatesDesc } from 'date-fns';
 import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
 import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 
 export const testInRepo = query(type({ repoId: 'number', test: 'string' }), async (params) => {
 	const { filePath, path, title } = parseTestPathParam(params.test);
@@ -25,64 +26,54 @@ export const testInRepo = query(type({ repoId: 'number', test: 'string' }), asyn
 });
 
 export const runsOfTest = query(
-	type({ testId: 'number', branch: 'string | null = null' }),
-	async ({ testId: id, branch }) => {
-		const testruns = await db.query.testruns.findMany({
-			where: eq(tables.testruns.testId, id),
-			orderBy: [desc(tables.testruns.startedAt)]
-		});
-
-		const runs = await db.query.runs.findMany({
-			where: and(
-				inArray(
-					tables.runs.id,
-					testruns.map((tr) => tr.runId)
-				),
-				branch ? eq(tables.runs.branch, branch) : undefined
+	type({
+		testId: 'number',
+		branches: 'string[] | null = null',
+		openPRs: ['number[]', '=', () => []]
+	}),
+	async ({ testId: id, branches, openPRs }) => {
+		const rows = await db
+			.select()
+			.from(tables.testruns)
+			.leftJoin(tables.runs, eq(tables.runs.id, tables.testruns.runId))
+			.leftJoin(tables.results, eq(tables.results.testrunId, tables.testruns.id))
+			.leftJoin(tables.errors, eq(tables.errors.resultId, tables.results.id))
+			.where(
+				and(
+					eq(tables.testruns.testId, id),
+					branches ? inArray(tables.runs.branch, branches) : undefined,
+					// Don't request runs from closed PRs if we know which PRs are still open
+					openPRs
+						? or(
+								isNull(tables.runs.pullRequestNumber),
+								inArray(tables.runs.pullRequestNumber, openPRs)
+							)
+						: undefined
+				)
 			)
-		});
+			.orderBy(desc(tables.testruns.startedAt));
 
-		const steps = await db.query.steps.findMany({
-			where: inArray(
-				tables.steps.testrunId,
-				testruns.map((tr) => tr.id)
-			)
-		});
+		const testruns = Object.fromEntries(
+			rows.map((row) => [
+				row.testruns.id,
+				{
+					...row.testruns,
+					run: row.runs!,
+					results: rows
+						.filter((r) => r.testruns.id === row.testruns.id)
+						.map((r) => r.results)
+						.filter((res) => res !== null),
+					errors: rows
+						.filter((r) => r.testruns.id === row.testruns.id)
+						.map((r) => r.errors)
+						.filter((e) => e !== null)
+				}
+			])
+		);
 
-		const results = await db.query.results.findMany({
-			where: inArray(
-				tables.results.testrunId,
-				testruns.map((tr) => tr.id)
-			)
-		});
-
-		const errors = await db.query.errors.findMany({
-			where: inArray(
-				tables.errors.resultId,
-				results.map((res) => res.id)
-			)
-		});
-
-		const richTestruns = testruns
-			.filter((testrun) => runs.some((run) => run.id === testrun.runId))
-			.map((testrun) => ({
-				...testrun,
-				steps: steps
-					.filter((step) => step.testrunId === testrun.id)
-					.map((step) => ({
-						...step,
-						errors: errors.filter((err) => err.stepId === step.id)
-					})),
-				run: runs.find((r) => r.id === testrun.runId)!,
-				result: results.find((res) => res.testrunId === testrun.id) || null,
-				errors: errors.filter((err) => {
-					const result = results.find((res) => res.testrunId === testrun.id);
-					return result ? err.resultId === result.id : false;
-				})
-			}))
-			.toSorted((a, b) => a.run.githubJobId - b.run.githubJobId)
-			.toReversed();
-
-		return Map.groupBy(richTestruns, (tr) => tr.run.pullRequestNumber || tr.run.branch);
+		return Map.groupBy(
+			Object.values(testruns).sort((a, b) => compareDatesDesc(a.startedAt, b.startedAt)),
+			(tr) => tr.run.pullRequestNumber || tr.run.branch
+		);
 	}
 );

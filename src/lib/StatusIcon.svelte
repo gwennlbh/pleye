@@ -25,3 +25,10 @@
 {:else if outcome === 'skipped'}
 	<span class="subdued">— {@render children?.()}</span>
 {/if}
+
+<style>
+	span {
+		display: inline-block;
+		width: 1ch;
+	}
+</style>

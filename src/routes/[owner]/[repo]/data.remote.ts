@@ -3,7 +3,7 @@ import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
 import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, avg, count, desc, eq, gt, inArray, isNotNull, max, sql } from 'drizzle-orm';
 
 export const repository = query(type({ owner: 'string', repo: 'string' }), async (params) => {
 	const repo = await db.query.repositories.findFirst({
@@ -61,33 +61,52 @@ export const testsOfRepoByFilename = query(type('number'), async (repo) => {
 });
 
 export const flakyTests = query(type('number'), async (repoId) => {
-	const runs = await db.query.runs.findMany({
-		where: and(eq(tables.runs.repositoryId, repoId), eq(tables.runs.branch, 'main'))
-	});
-
-	const testruns = await db.query.testruns.findMany({
-		where: and(
-			inArray(
-				tables.testruns.runId,
-				runs.map((r) => r.id)
-			),
-			inArray(tables.testruns.outcome, ['flaky', 'unexpected'])
+	return await db
+		.select({
+			test: tables.tests,
+			runsAmount: count(tables.testruns.id),
+			projectIds: sql<number[]>`array_agg(DISTINCT ${tables.testruns.projectId})`
+		})
+		.from(tables.testruns)
+		.leftJoin(tables.runs, eq(tables.runs.id, tables.testruns.runId))
+		.leftJoin(tables.tests, eq(tables.tests.id, tables.testruns.testId))
+		.where(
+			and(
+				eq(tables.runs.branch, 'main'),
+				eq(tables.runs.repositoryId, repoId),
+				inArray(tables.testruns.outcome, ['flaky', 'unexpected'])
+			)
 		)
-	});
+		.groupBy(tables.tests.id)
+		.having(({ runsAmount }) => gt(runsAmount, 1))
+		.orderBy(({ runsAmount }) => desc(runsAmount));
+});
 
-	const tests = await db.query.tests.findMany({
-		where: inArray(
-			tables.tests.id,
-			testruns.map((tr) => tr.testId)
+export const longTests = query(type('number'), async (repoId) => {
+	// Get tests with the highest average duration (considering only passing runs)
+	// where average duration > 10 seconds
+	// TODO: make the 10 seconds configurable
+	return await db
+		.select({
+			test: tables.tests,
+			averageDuration: avg(tables.testruns.duration),
+			projectIds: sql<number[]>`array_agg(DISTINCT ${tables.testruns.projectId})`
+		})
+		.from(tables.testruns)
+		.leftJoin(tables.runs, eq(tables.runs.id, tables.testruns.runId))
+		.leftJoin(tables.tests, eq(tables.tests.id, tables.testruns.testId))
+		.where(
+			and(
+				eq(tables.runs.repositoryId, repoId),
+				eq(tables.runs.branch, 'main'),
+				isNotNull(tables.testruns.duration),
+				eq(tables.testruns.outcome, 'expected'),
+				gt(tables.testruns.duration, sql`'10 seconds'`)
+			)
 		)
-	});
-
-	return tests
-		.map((test) => ({
-			...test,
-			testruns: testruns.filter((tr) => tr.testId === test.id)
-		}))
-		.toSorted((a, b) => b.testruns.length - a.testruns.length);
+		.groupBy(tables.tests.id)
+		.orderBy(({ averageDuration }) => desc(averageDuration))
+		.limit(20);
 });
 
 export const branchesOfRepo = query(type('number'), async (repoId) => {

@@ -7,7 +7,13 @@ export async function load({ params, url }) {
 	const test = await testInRepo({ ...params, repoId: repo.id });
 	const testruns = await runsOfTest({
 		testId: test.id,
-		branch
+		branches: branch ? [branch] : null,
+		openPRs: await fetch(
+			`https://api.github.com/repos/${params.owner}/${params.repo}/pulls?state=open`
+		)
+			.then((res) => res.json())
+			.then((prs) => prs.map((pr: { number: number }) => pr.number))
+			.catch(() => undefined)
 	});
 	return { repo, test, testruns };
 }

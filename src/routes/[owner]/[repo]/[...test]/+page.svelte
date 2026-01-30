@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import ExternalLink from '$lib/ExternalLink.svelte';
 	import {
 		branchURL,
@@ -8,13 +10,10 @@
 		userProfileURL,
 		workflowJobURL
 	} from '$lib/github.js';
-	import type { MapValues } from '$lib/utils.js';
-	import { formatDistanceToNow } from 'date-fns';
+	import StatusIcon from '$lib/StatusIcon.svelte';
+	import { formatDurationShort } from '$lib/utils.js';
 	import { FancyAnsi } from 'fancy-ansi';
 	import { projectsOfRepo } from '../data.remote.js';
-	import { browser } from '$app/environment';
-	import { page } from '$app/state';
-	import StatusIcon from '$lib/StatusIcon.svelte';
 
 	const { params, data } = $props();
 	const { test, repo, testruns: runs } = $derived(data);
@@ -91,7 +90,7 @@
 			{/if}
 		</h2>
 		<ul>
-			{#each testruns as { run, result, errors, steps, ...testrun } (testrun.id)}
+			{#each testruns as { run, errors, ...testrun } (testrun.id)}
 				{@const project = projects.get(testrun.projectId)!}
 				<li>
 					<details open={run.commitSha === latestCommit}>
@@ -101,53 +100,48 @@
 							>
 							<StatusIcon {...testrun} inProgress={run.status === 'in_progress'} />
 							<span
+								class="testrun-header"
 								class:failure={testrun.outcome === 'unexpected'}
 								class:warning={testrun.outcome === 'flaky'}
 								class:subdued={testrun.outcome === 'skipped'}
 							>
-								Run
-								<ExternalLink sneaky url={workflowJobURL(repo, run)}
-									>#{run.githubJobId}</ExternalLink
-								>
-								on
-								<a
-									class="sneaky"
-									href={resolve('/[owner]/[repo]/projects/[project]', {
-										...params,
-										project: project.name
-									})}
-								>
-									{project.name}
-								</a>
-								{run.commitTitle}
-								by
-								{#if run.commitAuthorUsername}
-									<ExternalLink sneaky url={userProfileURL(run.commitAuthorUsername)}>
+								<span class="run">
+									Run
+									<ExternalLink sneaky url={workflowJobURL(repo, run)}
+										>#{run.githubJobId}</ExternalLink
+									>
+								</span>
+								<span class="duration subdued">
+									{#if testrun.duration}
+										{formatDurationShort(testrun.duration)}
+									{/if}
+								</span>
+								<span class="project">
+									on
+									<a
+										class="sneaky"
+										href={resolve('/[owner]/[repo]/projects/[project]', {
+											...params,
+											project: project.name
+										})}
+									>
+										{project.name}
+									</a>
+								</span>
+								<span class="title">{run.commitTitle}</span>
+								<span class="author">
+									by
+									{#if run.commitAuthorUsername}
+										<ExternalLink sneaky url={userProfileURL(run.commitAuthorUsername)}>
+											{run.commitAuthorName}
+										</ExternalLink>
+									{:else}
 										{run.commitAuthorName}
-									</ExternalLink>
-								{:else}
-									{run.commitAuthorName}
-								{/if}</span
-							>
+									{/if}
+								</span>
+							</span>
 						</summary>
-						<ul>
-							{#each steps.filter((s) => s.errors.length > 0) as step (step.id)}
-								<li>
-									<details open>
-										<summary>In {step.title}</summary>
-										<ul>
-											{#each step.errors as { id, message, stack } (id)}
-												<li>
-													<p style:font-family="monospace">
-														{@html ansiToHtml(stack || message || '')}
-													</p>
-												</li>
-											{/each}
-										</ul>
-									</details>
-								</li>
-							{/each}
-						</ul>
+
 						<ul class="errors">
 							{#each errors as { id, message, stack, ...location } (id)}
 								<li class="error">
@@ -182,5 +176,11 @@
 		max-width: 800px;
 		overflow-x: auto;
 		text-wrap: nowrap;
+	}
+
+	.testrun-header {
+		display: inline-grid;
+		grid-template-columns: max-content 4ch 12ch 40vw max-content;
+		gap: 0 0.75em;
 	}
 </style>
