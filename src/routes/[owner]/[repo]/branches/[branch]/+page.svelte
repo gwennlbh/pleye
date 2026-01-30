@@ -7,15 +7,19 @@
 	import { formatDistanceToNowStrict } from 'date-fns';
 	import { repository } from '../../data.remote';
 	import { progressOfTestrun, runsOfBranch } from './data.remote';
+	import { page } from '$app/state';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
 	let { ongoing, completed } = $derived(await runsOfBranch({ ...params, repoId: repo.id }));
 
 	$effect(() => {
-		setInterval(() => {
-			void runsOfBranch({ ...params, repoId: repo.id }).refresh();
-		}, 1000);
+		setInterval(
+			() => {
+				void runsOfBranch({ ...params, repoId: repo.id }).refresh();
+			},
+			Number(page.url.searchParams.get('refresh') ?? 10) * 1000
+		);
 	});
 </script>
 
