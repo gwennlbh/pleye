@@ -24,7 +24,8 @@ a {
 	text-underline-offset: 3px;
 	color: unset;
 
-	&:not(.sneaky) {
+	&:not(.sneaky),
+	&.sneaky:is(:hover, :focus-visible) {
 		color: rgb(233, 57, 195);
 	}
 
@@ -32,8 +33,6 @@ a {
 		text-decoration: none;
 	}
 }
-
-
 
 li.empty {
 	color: gray;

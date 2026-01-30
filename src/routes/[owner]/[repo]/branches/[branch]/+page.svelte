@@ -93,87 +93,88 @@
 					<ul>
 						{#each runs as run (run.id)}
 							{@const currentTestrun =
-								run.status === 'in_progress' &&
-								run.testruns
-									.filter(testrunIsOngoing)
-									.toSorted((a, b) => a.startedAt.getTime() - b.startedAt.getTime())
-									.at(0)}
+								run.status === 'in_progress'
+									? run.testruns
+											.filter(testrunIsOngoing)
+											.toSorted((a, b) => a.startedAt.getTime() - b.startedAt.getTime())
+											.at(0)
+									: undefined}
+
 							{@const dones = run.testruns.filter((tr) => !testrunIsOngoing(tr))}
 							{@const successes = dones.filter((tr) => tr.outcome !== 'unexpected')}
 							{@const failures = dones.filter((tr) => tr.outcome === 'unexpected')}
 							{@const flakies = dones.filter((tr) => tr.outcome === 'flaky')}
 							{@const expecteds = dones.filter((tr) => tr.outcome === 'expected')}
-							<li class="testrun">
-								<ExternalLink url={workflowJobURL(repo, run)}>
-									{#if run.githubJobName}
-										{run.githubJobName}
-									{:else}
-										#{run.githubJobId}
-									{/if}
-								</ExternalLink>
-								{#if currentTestrun}
-									{@const currentStep = currentTestrun.steps.at(-1)}
+
+							<li class="testrun" class:has-progress-bar={run.status === 'in_progress'}>
+								<ExternalLink sneaky url={workflowJobURL(repo, run)}>job</ExternalLink>
+								<span class="failure">
+									{#if failures.length > 0}{failures.length}✘{/if}
+								</span>
+								<span class="warning">
+									{#if flakies.length > 0}{flakies.length}~{/if}
+								</span>
+								<span class="success">
+									{#if successes.length > 0}{successes.length}✓{/if}
+								</span>
+								{#if run.status === 'in_progress'}
+									{@const currentStep = currentTestrun?.steps.at(-1)}
 									<span class="progress">
-										<span class="success">
-											{successes.length}✓
-										</span>
-										<span class="warning">
-											{flakies.length}~
-										</span>
-										<span class="failure">
-											{failures.length}✘
-										</span>
 										{dones.length + 1}/{run.testrunsCount}
-										<progress max={run.testrunsCount} value={dones.length}></progress>
 									</span>
-									<span class="rest">
-										{currentTestrun.test.title}
-										<span class="step">
-											{#if currentStep}
-												{@const max = currentTestrun.test.stepsCount}
-												{@const value = currentStep.index + 1}
-												<code>
-													{#if max > 0}
-														{((value / max) * 100).toFixed(0).padStart(2, ' ')}%
-													{:else}
-														0%
-													{/if}
-												</code>
-												<progress {value} {max}></progress>
-												{[...currentStep.path, currentStep.title].join(' › ')}
+									<progress max={run.testrunsCount} value={dones.length}></progress>
+									{#if currentTestrun}
+										{@const max = currentTestrun.test.stepsCount}
+										{@const value = (currentStep?.index ?? 0) + 1}
+
+										<span class="step-progress">
+											{#if max > 0}
+												{((value / max) * 100).toFixed(0).padStart(2, ' ')}%
+											{:else}
+												0%
 											{/if}
 										</span>
-									</span>
+										<span class="rest">
+											{currentTestrun.test.title}
+											<span class="step">
+												{#if currentStep}
+													<progress {value} {max}></progress>
+													{[...currentStep.path, currentStep.title].join(' › ')}
+												{/if}
+											</span>
+										</span>
+									{:else}
+										<span class="step-progress"></span>
+										<span class="subdued">waiting...</span>
+									{/if}
 								{:else if run.result === 'interrupted'}
 									<span>— interrupted</span>
 								{:else if run.result === 'passed'}
-									<span class="success">
-										✔ {run.testruns.filter((tr) => tr.outcome !== 'unexpected').length} tests passed
-									</span>
 									{#if flakies.length > 0}
-										<span class="warning">
-											~ {flakies.length} flaky tests:
-											{#each flakies as flaky, i (flaky.id)}
-												{#if i > 0},
-												{/if}
-												<a href={linkToTest(params, flaky.test, params.branch)}>
-													{flaky.test.title}
-												</a>
-											{/each}
+										<span class="flakies">
+											<span class="warning">
+												~ {flakies.length} flaky tests:
+												{#each flakies as flaky, i (flaky.id)}
+													{#if i > 0},
+													{/if}
+													<a href={linkToTest(params, flaky.test, params.branch)}>
+														{flaky.test.title}
+													</a>
+												{/each}
+											</span>
 										</span>
 									{/if}
 								{:else if run.result === 'failed'}
-									<span class="failure"
-										>✘ {run.testruns.filter((tr) => tr.outcome === 'unexpected').length} tests failed:
+									<span class="failures">
+										<span class="failure">failed:</span>
+										{#each failures as failure, i (failure.id)}
+											{#if i > 0},
+											{/if}
+											<a class="sneaky" href={linkToTest(params, failure.test, params.branch)}>
+												{failure.test.title}
+											</a>
+										{/each}
 									</span>
-
-									{#each failures as failure, i (failure.id)}
-										{#if i > 0},
-										{/if}
-										<a href={linkToTest(params, failure.test, params.branch)}>
-											{failure.test.title}
-										</a>
-									{/each}
 								{/if}
 							</li>
 						{/each}
@@ -194,7 +195,10 @@
 
 	ul li {
 		display: grid;
-		grid-template-columns: max-content max-content 1fr 1fr;
+		grid-template-columns: max-content repeat(3, 3ch)  1fr ;
+		&.has-progress-bar {
+			grid-template-columns: max-content repeat(3, 3ch) 5ch 100px 3ch 1fr 1fr;
+		}
 		gap: 0 0.75em;
 	}
 
