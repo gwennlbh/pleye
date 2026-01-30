@@ -99,9 +99,9 @@
 				<li style:color={testrun.expectedStatus === 'skipped' ? 'gray' : 'inherit'}>
 					<details open={run.commitSha === latestCommit}>
 						<summary>
-							<a rel="external" target="_blank" href={commitURL(repo, run).toString()}
-								>{run.commitSha.slice(0, 7)}
-							</a>
+							<ExternalLink sneaky url={commitURL(repo, run)}
+								>{run.commitSha.slice(0, 7)}</ExternalLink
+							>
 							<StatusIcon {...testrun} />
 							<span
 								class:failure={testrun.outcome === 'unexpected'}
@@ -109,11 +109,12 @@
 								class:subdued={testrun.outcome === 'skipped'}
 							>
 								Run
-								<a rel="external" target="_blank" href={workflowJobURL(repo, run).toString()}
-									>#{run.githubJobId}</a
+								<ExternalLink sneaky url={workflowJobURL(repo, run)}
+									>#{run.githubJobId}</ExternalLink
 								>
 								on
 								<a
+									class="sneaky"
 									href={resolve('/[owner]/[repo]/projects/[project]', {
 										...params,
 										project: project.name
@@ -152,7 +153,7 @@
 						</ul>
 						<ul class="errors">
 							{#each errors as { id, message, stack, ...location } (id)}
-								<li>
+								<li class="error">
 									{#if location.filePath && location.locationInFile}
 										<a rel="external" href={vscodeURL(location)}>
 											{location.filePath}:{location.locationInFile.join(':')}
@@ -174,5 +175,15 @@
 <style>
 	.errors:not(:empty) {
 		margin: 1em 0 2em;
+	}
+
+	.error {
+		padding: 1.5em;
+		background: color-mix(in srgb, currentColor 30%, transparent);
+		border-radius: 0.5em;
+		font-size: 0.9em;
+		max-width: 800px;
+		overflow-x: auto;
+		text-wrap: nowrap;
 	}
 </style>

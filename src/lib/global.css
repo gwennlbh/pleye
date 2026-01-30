@@ -2,14 +2,15 @@ body {
 	font-family: 'Martian Mono';
 	font-size: 0.8rem;
 	font-weight: 300;
-    margin: 3em 4em;
+	margin: 3em 4em;
 
-    display: flex;
-    flex-direction: column;
-    gap: 3em;
+	display: flex;
+	flex-direction: column;
+	gap: 3em;
 }
 
-code, pre {
+code,
+pre {
 	font-family: inherit;
 }
 
@@ -20,13 +21,19 @@ section {
 }
 
 a {
-	color: rgb(233, 57, 195);
 	text-underline-offset: 3px;
+	color: unset;
 
-	&:not(:hover):not(:focus-visible) {
+	&:not(.sneaky) {
+		color: rgb(233, 57, 195);
+	}
+
+	&:not(:hover):not(:focus-visible):not(.sneaky) {
 		text-decoration: none;
 	}
 }
+
+
 
 li.empty {
 	color: gray;

@@ -4,9 +4,10 @@
 	interface Props {
 		url: URL;
 		children: Snippet;
+		sneaky?: boolean;
 	}
 
-	const { url, children }: Props = $props();
+	const { url, children, sneaky = false }: Props = $props();
 </script>
 
-<a rel="external" target="_blank" href={url.toString()}>{@render children()}</a>
+<a class:sneaky rel="external" target="_blank" href={url.toString()}>{@render children()}</a>

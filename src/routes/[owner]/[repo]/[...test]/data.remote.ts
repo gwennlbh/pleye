@@ -80,7 +80,8 @@ export const runsOfTest = query(
 					return result ? err.resultId === result.id : false;
 				})
 			}))
-			.toSorted((a, b) => a.run.githubJobId - b.run.githubJobId);
+			.toSorted((a, b) => a.run.githubJobId - b.run.githubJobId)
+			.toReversed();
 
 		return Map.groupBy(richTestruns, (tr) => tr.run.pullRequestNumber || tr.run.branch);
 	}
