@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import ExternalLink from '$lib/ExternalLink.svelte';
-	import { commitURL, workflowJobURL, workflowRunURL } from '$lib/github.js';
+	import { commitURL, userProfileURL, workflowJobURL, workflowRunURL } from '$lib/github.js';
 	import MaybeDetails from '$lib/MaybeDetails.svelte';
 	import { testrunIsOngoing } from '$lib/testruns.js';
-	import { formatDistanceToNow } from 'date-fns';
+	import { formatDistanceToNowStrict } from 'date-fns';
 	import { repository } from '../../data.remote';
 	import { progressOfTestrun, runsOfBranch } from './data.remote';
 
@@ -18,7 +19,10 @@
 	});
 </script>
 
-<h1>Runs on {params.branch}</h1>
+<header>
+	<a href={resolve('/[owner]/[repo]', params)}>back</a>
+	<h1>Runs on {params.branch}</h1>
+</header>
 
 <h2>Ongoing</h2>
 
@@ -31,15 +35,24 @@
 {#snippet list(groupedRuns: typeof ongoing | typeof completed, openDetails = false)}
 	<ul>
 		{#each groupedRuns as [runId, runs] (runId)}
-			{@const commitSha = runs[0].commitSha}
+			{@const { commitSha, commitTitle, commitAuthorUsername, commitAuthorName } = runs[0]}
 			{@const startedAt = new Date(Math.min(...runs.map((r) => r.startedAt.getTime())))}
 			<li>
 				<details open={openDetails}>
 					<summary>
 						<ExternalLink url={workflowRunURL(repo, { githubRunId: runId })}>#{runId}</ExternalLink>
+						{formatDistanceToNowStrict(startedAt, { addSuffix: true })}
 						<ExternalLink url={commitURL(repo, { commitSha })}>{commitSha.slice(0, 7)}</ExternalLink
 						>
-						{formatDistanceToNow(startedAt, { addSuffix: true })}
+						{commitTitle}
+						by
+						{#if commitAuthorUsername}
+							<ExternalLink url={userProfileURL(commitAuthorUsername)}>
+								{commitAuthorName}
+							</ExternalLink>
+						{:else}
+							{commitAuthorName}
+						{/if}
 					</summary>
 
 					<ul>
@@ -84,6 +97,8 @@
 					</ul>
 				</details>
 			</li>
+		{:else}
+			<li class="empty">Nyathing here</li>
 		{/each}
 	</ul>
 {/snippet}

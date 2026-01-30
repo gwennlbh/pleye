@@ -1,0 +1,33 @@
+body {
+	font-family: 'Martian Mono';
+	font-size: 0.8rem;
+	font-weight: 300;
+    margin: 3em 4em;
+
+    display: flex;
+    flex-direction: column;
+    gap: 3em;
+}
+
+code, pre {
+	font-family: inherit;
+}
+
+section {
+	display: flex;
+	flex-direction: column;
+	gap: 1em;
+}
+
+a {
+	color: rgb(233, 57, 195);
+	text-underline-offset: 3px;
+
+	&:not(:hover):not(:focus-visible) {
+		text-decoration: none;
+	}
+}
+
+li.empty {
+	color: gray;
+}

@@ -21,98 +21,129 @@
 
 <h1>{params.owner}/{params.repo}</h1>
 
-<h2>Projects</h2>
+<section>
+	<h2>Projects</h2>
 
-<ul>
-	{#each projects as [id, project] (id)}
-		<li>{project.name}</li>
-	{/each}
-</ul>
-
-<h2>Flakies</h2>
-
-<ul>
-	{#each flakies as test (test.id)}
-		{@const projectIds = new Set(test.testruns.map((tr) => tr.projectId))}
-		<li>
-			<a
-				href={resolve('/[owner]/[repo]/[...test]', {
-					...params,
-					test: [test.filePath.replace(/^\//, ''), ...test.path, test.title].join('/')
-				})}
-			>
-				{test.title}
-			</a>
-			({test.testruns.length} times) on
-			{#each projectIds as id, i (id)}
-				{#if i > 0},
-				{/if}
-				{@const { name } = projects.get(id)!}
+	<ul>
+		{#each projects as [id, project] (id)}
+			<li>
 				<a
 					href={resolve('/[owner]/[repo]/projects/[project]', {
 						...params,
-						project: name
+						project: project.name
 					})}
 				>
-					{name}
+					{project.name}
 				</a>
-			{/each}
-		</li>
-	{/each}
-</ul>
+			</li>
+		{/each}
+	</ul>
+</section>
 
-<h2>Branches</h2>
+<section class="flakies">
+	<h2>Flakies</h2>
 
-<ul>
-	{#each branches as branch (branch)}
-		<li>
-			<a
-				href={resolve('/[owner]/[repo]/branches/[branch]', {
-					...params,
-					branch
-				})}
-			>
-				{branch}
-			</a>
-		</li>
-	{/each}
-</ul>
-
-<h2>Tests</h2>
-
-<ul>
-	{#each testsByFile as [filepath, tests] (filepath)}
-		<li>
-			<details>
-				<summary>
-					{basename(filepath)} ({tests.length} tests)
-				</summary>
-				<ul>
-					{#each tests as { title, path, testruns, stepsCount, id } (id)}
-						{@const ongoing = testruns.find(
-							(tr) =>
-								tr.run.status === 'in_progress' && tr.duration === null && tr.outcome !== 'skipped'
-						)}
-						<li>
-							[{stepsCount}]
-
-							{#if ongoing}
-								<code title={formatDistanceToNow(ongoing.startedAt, { addSuffix: true })}>
-									[ONGOING]
-								</code>
-							{/if}
-							<a
-								href={resolve('/[owner]/[repo]/[...test]', {
-									...params,
-									test: [filepath.replace(/^\//, ''), ...path, title].join('/')
-								})}
-							>
-								{[...path, title].join(' › ')}
-							</a>
-						</li>
+	<ul>
+		{#each flakies as test (test.id)}
+			{@const projectIds = new Set(test.testruns.map((tr) => tr.projectId))}
+			<li>
+				<span class="times">×{test.testruns.length}</span>
+				<a
+					href={resolve('/[owner]/[repo]/[...test]', {
+						...params,
+						test: [test.filePath.replace(/^\//, ''), ...test.path, test.title].join('/')
+					})}
+				>
+					{test.title}
+				</a>
+				<span class="projects">
+					on
+					{#each projectIds as id, i (id)}
+						{#if i > 0},
+						{/if}
+						{@const { name } = projects.get(id)!}
+						<a
+							href={resolve('/[owner]/[repo]/projects/[project]', {
+								...params,
+								project: name
+							})}
+						>
+							{name}
+						</a>
 					{/each}
-				</ul>
-			</details>
-		</li>
-	{/each}
-</ul>
+				</span>
+			</li>
+		{/each}
+	</ul>
+</section>
+
+<section>
+	<h2>Branches</h2>
+
+	<ul>
+		{#each branches as branch (branch)}
+			<li>
+				<a
+					href={resolve('/[owner]/[repo]/branches/[branch]', {
+						...params,
+						branch
+					})}
+				>
+					{branch}
+				</a>
+			</li>
+		{/each}
+	</ul>
+</section>
+
+<section>
+	<h2>Tests</h2>
+
+	<ul>
+		{#each testsByFile as [filepath, tests] (filepath)}
+			<li>
+				<details>
+					<summary>
+						{basename(filepath)} ({tests.length} tests)
+					</summary>
+					<ul>
+						{#each tests as { title, path, testruns, stepsCount, id } (id)}
+							{@const ongoing = testruns.find(
+								(tr) =>
+									tr.run.status === 'in_progress' &&
+									tr.duration === null &&
+									tr.outcome !== 'skipped'
+							)}
+							<li>
+								[{stepsCount}]
+
+								{#if ongoing}
+									<code title={formatDistanceToNow(ongoing.startedAt, { addSuffix: true })}>
+										[ONGOING]
+									</code>
+								{/if}
+								<a
+									href={resolve('/[owner]/[repo]/[...test]', {
+										...params,
+										test: [filepath.replace(/^\//, ''), ...path, title].join('/')
+									})}
+								>
+									{[...path, title].join(' › ')}
+								</a>
+							</li>
+						{/each}
+					</ul>
+				</details>
+			</li>
+		{/each}
+	</ul>
+</section>
+
+
+<style>
+	.flakies ul li {
+		display: grid;
+		grid-template-columns: max-content 1fr 1fr;
+		gap: 0 0.75em;
+	}
+</style>

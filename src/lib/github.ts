@@ -34,3 +34,7 @@ export function pullRequestURL(
 ): URL {
 	return new URL(`https://github.com/${githubOwner}/${githubRepo}/pull/${pullRequestNumber}`);
 }
+
+export function userProfileURL(username: string): URL {
+	return new URL(`https://github.com/${username}`);
+}
