@@ -24,24 +24,36 @@ export const runsOfBranch = query(type({ repoId: 'number', branch: 'string' }), 
 		)
 	});
 
+    const steps = await db.query.steps.findMany({
+        where: inArray(
+            tables.steps.testrunId,
+            testruns.map((tr) => tr.id)
+        )
+    });
+
 	const richRuns = runs.map((run) => ({
 		...run,
 		testruns: testruns
 			.filter((tr) => tr.runId === run.id)
 			.map((tr) => ({
 				...tr,
+                steps: steps.filter((step) => step.testrunId === tr.id),
 				test: tests.find((test) => test.id === tr.testId)!
 			}))
 	}));
 
-	return {
-		ongoing: Map.groupBy(
-			richRuns.filter((run) => run.status !== 'completed'),
-			(run) => run.githubRunId
-		),
-		completed: Map.groupBy(
-			richRuns.filter((run) => run.status === 'completed'),
-			(run) => run.githubRunId
-		)
-	};
+	const byWorkflowRun = Map.groupBy(richRuns, (run) => run.githubRunId);
+
+	const ongoing: typeof byWorkflowRun = new Map();
+	const completed: typeof byWorkflowRun = new Map();
+
+	for (const [key, runs] of byWorkflowRun) {
+		if (runs.some((run) => run.status !== 'completed')) {
+			ongoing.set(key, runs);
+		} else {
+			completed.set(key, runs);
+		}
+	}
+
+	return { ongoing, completed };
 });
