@@ -1,6 +1,8 @@
 import { query } from '$app/server';
 import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
+import { testrunIsOngoing } from '$lib/testruns';
+import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 
@@ -24,12 +26,12 @@ export const runsOfBranch = query(type({ repoId: 'number', branch: 'string' }), 
 		)
 	});
 
-    const steps = await db.query.steps.findMany({
-        where: inArray(
-            tables.steps.testrunId,
-            testruns.map((tr) => tr.id)
-        )
-    });
+	const steps = await db.query.steps.findMany({
+		where: inArray(
+			tables.steps.testrunId,
+			testruns.map((tr) => tr.id)
+		)
+	});
 
 	const richRuns = runs.map((run) => ({
 		...run,
@@ -37,7 +39,7 @@ export const runsOfBranch = query(type({ repoId: 'number', branch: 'string' }), 
 			.filter((tr) => tr.runId === run.id)
 			.map((tr) => ({
 				...tr,
-                steps: steps.filter((step) => step.testrunId === tr.id),
+				steps: steps.filter((step) => step.testrunId === tr.id),
 				test: tests.find((test) => test.id === tr.testId)!
 			}))
 	}));
@@ -56,4 +58,30 @@ export const runsOfBranch = query(type({ repoId: 'number', branch: 'string' }), 
 	}
 
 	return { ongoing, completed };
+});
+
+export const progressOfTestrun = query(type('number'), async (testrunId) => {
+	const testrun = await db.query.testruns.findFirst({
+		where: eq(tables.testruns.id, testrunId)
+	});
+	if (!testrun) {
+		throw error(404, 'Testrun not found');
+	}
+
+	const test = await db.query.tests.findFirst({
+		where: eq(tables.tests.id, testrun.testId),
+		columns: {
+			stepsCount: true
+		}
+	});
+
+	if (!test) throw new Error('Test not found');
+
+	const [currentStep] = await db.query.steps.findMany({
+		where: and(eq(tables.steps.testrunId, testrun.id), eq(tables.steps.retry, testrun.retries)),
+		orderBy: [desc(tables.steps.index)],
+		limit: 1
+	});
+
+	return [currentStep ? currentStep.index + 1 : 0, test.stepsCount];
 });

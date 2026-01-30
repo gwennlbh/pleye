@@ -2,7 +2,10 @@
 	import { commitURL, workflowJobURL, workflowRunURL } from '$lib/github.js';
 	import { formatDistance, formatDistanceToNow, formatDuration } from 'date-fns';
 	import { repository } from '../../data.remote';
-	import { runsOfBranch } from './data.remote';
+	import { progressOfTestrun, runsOfBranch } from './data.remote';
+	import { testrunIsOngoing } from '$lib/testruns.js';
+	import ExternalLink from '$lib/ExternalLink.svelte';
+	import MaybeDetails from '$lib/MaybeDetails.svelte';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
@@ -27,30 +30,49 @@
 			<li>
 				<details open={openDetails}>
 					<summary>
-						<a href={workflowRunURL(repo, { githubRunId: runId })}>#{runId}</a>
-						<a href={commitURL(repo, { commitSha })}>{commitSha.slice(0, 7)}</a>
+						<ExternalLink url={workflowRunURL(repo, { githubRunId: runId })}>#{runId}</ExternalLink>
+						<ExternalLink url={commitURL(repo, { commitSha })}>{commitSha.slice(0, 7)}</ExternalLink
+						>
 						{formatDistanceToNow(startedAt, { addSuffix: true })}
 					</summary>
 
 					<ul>
 						{#each runs as run (run.id)}
 							{@const currentTestrun = run.testruns.find(
-								(tr) => run.status === 'in_progress' && (tr.duration || tr.outcome === 'skipped')
+								(tr) => run.status === 'in_progress' && testrunIsOngoing(tr)
 							)}
 							<li>
-								<a href={workflowJobURL(repo, run)}>#{run.githubJobId}</a>
-								{run.status}
-								{#if currentTestrun}
-									currently {[...currentTestrun.test.path, currentTestrun.test.title].join(' › ')}
-									{JSON.stringify({
-										max: currentTestrun.test.stepsCount,
-										value: Math.max(...currentTestrun.steps.map((s) => s.index))
-									})}
-									<!-- <progress
-										max={currentTestrun.test.stepsCount}
-										value={Math.max(currentTestrun.steps.map((s) => s.index))}
-									></progress> -->
-								{/if}
+								<MaybeDetails detailsData={currentTestrun} open>
+									<ExternalLink url={workflowJobURL(repo, run)}>#{run.githubJobId}</ExternalLink>
+									{run.status}
+									{#if currentTestrun}
+										<progress
+											max={run.testrunsCount}
+											value={run.testruns.filter(testrunIsOngoing).length}
+										></progress>
+										{[...currentTestrun.test.path, currentTestrun.test.title].join(' › ')}
+									{/if}
+
+									{#snippet details(testrun)}
+										{@const currentStep = testrun.steps.at(-1)}
+										{#await progressOfTestrun(testrun.id) then [value, max]}
+											<code>
+												{#if max > 0}
+													{((value / max) * 100).toFixed(0).padStart(2, '0')}%
+												{:else}
+													00%
+												{/if}
+											</code>
+											<progress {value} {max}></progress>
+										{/await}
+										{#if currentStep}
+											<code>
+												{[currentStep.filePath, ...(currentStep.locationInFile ?? [])].join(':')}
+											</code>
+											{[...currentStep.path, currentStep.title].join(' › ')}
+										{/if}
+									{/snippet}
+								</MaybeDetails>
 							</li>
 						{/each}
 					</ul>
