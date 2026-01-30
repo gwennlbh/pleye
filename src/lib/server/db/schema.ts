@@ -103,6 +103,7 @@ export const runs = pgTable(
 
 		githubJobId: bigint('github_job_id', { mode: 'number' }).notNull(),
 		githubRunId: bigint('github_run_id', { mode: 'number' }).notNull(),
+		baseDirectory: text('base_directory').default(''),
 		commitSha: text('commit_sha').notNull(),
 		branch: text('branch').notNull(),
 		pullRequestNumber: integer('pull_request_number'),
