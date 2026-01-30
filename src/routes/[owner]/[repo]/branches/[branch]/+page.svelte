@@ -77,7 +77,7 @@
 				>
 					<summary
 						class={{
-							success: result === 'passed',
+							warning: runs.some((r) => r.testruns.some((tr) => tr.outcome === 'flaky')),
 							failure: result === 'failed' || result === 'interrupted'
 						}}
 					>
@@ -117,7 +117,7 @@
 
 							<li class="testrun" class:has-progress-bar={run.status === 'in_progress'}>
 								{#if run.status === 'in_progress'}
-									<span class="icon">…</span>
+									<span class="icon">·</span>
 									{@const currentStep = currentTestrun?.steps.at(-1)}
 									<span class="failure">
 										{#if failures.length > 0}{failures.length}✘{/if}
@@ -144,7 +144,12 @@
 											{/if}
 										</span>
 										<span class="rest">
-											{currentTestrun.test.title}
+											<a
+												class="sneaky"
+												href={linkToTest(params, currentTestrun.test, params.branch)}
+											>
+												{currentTestrun.test.title}
+											</a>
 											<span class="step subdued">
 												{#if currentStep}
 													{[...currentStep.path, currentStep.title].join(' › ')}
@@ -165,28 +170,30 @@
 										<StatusIcon outcome="flaky" />
 										<span class="flakies">
 											<span class="warning">
-												~ {flakies.length} flaky tests:
-												{#each flakies as flaky, i (flaky.id)}
-													{#if i > 0},
-													{/if}
-													<a href={linkToTest(params, flaky.test, params.branch)}>
-														{flaky.test.title}
-													</a>
-												{/each}
+												{flakies.length}/{dones.length} flakies:
 											</span>
+											{#each flakies as flaky, i (flaky.id)}
+												{#if i > 0},
+												{/if}
+												<a class="sneaky" href={linkToTest(params, flaky.test, params.branch)}>
+													{flaky.test.title}
+												</a>
+											{/each}
 										</span>
 									{/if}
 								{:else if run.result === 'failed'}
 									<StatusIcon outcome="unexpected" />
 									<span class="failures">
-										<span class="failure">{failures.length}/{dones.length} failed:</span>
-										{#each failures.slice(0, 4) as failure, i (failure.id)}
-											{#if i > 0},
-											{/if}
-											<a class="sneaky" href={linkToTest(params, failure.test, params.branch)}>
-												{failure.test.title}
-											</a>
-										{/each}
+										<span class="failure">
+											{failures.length}/{dones.length} failed:
+											{#each failures.slice(0, 4) as failure, i (failure.id)}
+												{#if i > 0},
+												{/if}
+												<a class="sneaky" href={linkToTest(params, failure.test, params.branch)}>
+													{failure.test.title}
+												</a>
+											{/each}
+										</span>
 									</span>
 								{/if}
 							</li>
@@ -212,6 +219,7 @@
 		gap: 0 0.75em;
 		overflow-x: hidden;
 		align-items: center;
+		width: 100%;
 
 		&.has-progress-bar {
 			grid-template-columns: max-content repeat(3, 3ch) 5ch 100px 3ch 1fr 1fr;
@@ -223,7 +231,10 @@
 	}
 
 	details:open {
-		margin-bottom: 1em;
-	}
+		margin-bottom: 1.5em;
 
+		> summary {
+			margin-bottom: 0.75em;
+		}
+	}
 </style>

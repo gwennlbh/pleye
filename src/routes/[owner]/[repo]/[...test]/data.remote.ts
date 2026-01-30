@@ -25,7 +25,7 @@ export const testInRepo = query(type({ repoId: 'number', test: 'string' }), asyn
 });
 
 export const runsOfTest = query(
-	type({ testId: 'number', branch: 'string | null' }),
+	type({ testId: 'number', branch: 'string | null = null' }),
 	async ({ testId: id, branch }) => {
 		const testruns = await db.query.testruns.findMany({
 			where: eq(tables.testruns.testId, id),

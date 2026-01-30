@@ -4,13 +4,19 @@
 
 	interface Props {
 		outcome: (typeof testruns.$inferSelect)['outcome'];
+		/** If true, a null outcome will be considered as "in progress", otherwise it will be considered as "interrupted" */
+		inProgress?: boolean;
 		children?: Snippet<[]>;
 	}
 
-	const { outcome, children }: Props = $props();
+	const { outcome, children, inProgress }: Props = $props();
 </script>
 
-{#if outcome === 'expected'}
+{#if outcome === null && inProgress}
+	<span>… {@render children?.()}</span>
+{:else if outcome === null}
+	<span class="failure">! {@render children?.()}</span>
+{:else if outcome === 'expected'}
 	<span class="success">✔ {@render children?.()}</span>
 {:else if outcome === 'unexpected'}
 	<span class="failure">✘ {@render children?.()}</span>

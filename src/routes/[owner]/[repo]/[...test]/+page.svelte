@@ -93,16 +93,13 @@
 		<ul>
 			{#each testruns as { run, result, errors, steps, ...testrun } (testrun.id)}
 				{@const project = projects.get(testrun.projectId)!}
-				{@const ongoing =
-					testrun.duration === null && testrun.outcome === null && run.status === 'in_progress'}
-				{@const currentStep = ongoing ? steps.find((step) => !step.duration) : undefined}
-				<li style:color={testrun.expectedStatus === 'skipped' ? 'gray' : 'inherit'}>
+				<li>
 					<details open={run.commitSha === latestCommit}>
 						<summary>
 							<ExternalLink sneaky url={commitURL(repo, run)}
 								>{run.commitSha.slice(0, 7)}</ExternalLink
 							>
-							<StatusIcon {...testrun} />
+							<StatusIcon {...testrun} inProgress={run.status === 'in_progress'} />
 							<span
 								class:failure={testrun.outcome === 'unexpected'}
 								class:warning={testrun.outcome === 'flaky'}
@@ -125,7 +122,7 @@
 								{run.commitTitle}
 								by
 								{#if run.commitAuthorUsername}
-									<ExternalLink url={userProfileURL(run.commitAuthorUsername)}>
+									<ExternalLink sneaky url={userProfileURL(run.commitAuthorUsername)}>
 										{run.commitAuthorName}
 									</ExternalLink>
 								{:else}

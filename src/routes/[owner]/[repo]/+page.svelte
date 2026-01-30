@@ -49,7 +49,7 @@
 			{@const projectIds = new Set(test.testruns.map((tr) => tr.projectId))}
 			<li>
 				<span class="times">×{test.testruns.length}</span>
-				<a href={linkToTest(params, test)}>
+				<a href={linkToTest(params, test, 'main')}>
 					{test.title}
 				</a>
 				<span class="projects">
