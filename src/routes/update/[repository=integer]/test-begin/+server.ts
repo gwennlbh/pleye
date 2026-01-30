@@ -16,7 +16,7 @@ export const _Body = type({
 		.omit('title', 'path')
 		.and({
 			title: ['string', '=>', escapeSlashes],
-			path: ['string[]', '=>', (p) => p.map(escapeSlashes)]
+			path: type('string[]').pipe((p) => p.map(escapeSlashes))
 		}),
 	testrun: createInsertSchema(testruns).omit('id', 'testId', 'outcome', 'runId', 'projectId')
 });
