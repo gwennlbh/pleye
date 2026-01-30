@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { projects, steps, testruns, tests } from '$lib/server/db/schema';
+import { projects, runs, steps, testruns, tests } from '$lib/server/db/schema';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
 import { and, eq } from 'drizzle-orm';
@@ -11,6 +11,7 @@ import { escapeSlashes } from '$lib/utils.js';
 export const _Body = type({
 	githubJobId: 'number',
 	projectName: 'string',
+	testrunsCount: 'number.integer >= 0 = 0',
 	test: createInsertSchema(tests)
 		.omit('id', 'repositoryId', 'stepsCount')
 		.omit('title', 'path')
@@ -25,7 +26,7 @@ export async function POST({ params, request }) {
 	const data = await parsePayload(request, _Body);
 
 	const repository = await findRepository(params);
-	const run = await findRun(params, data.githubJobId, repository.id);
+	let run = await findRun(params, data.githubJobId, repository.id);
 
 	// Find the project
 
@@ -38,6 +39,17 @@ export async function POST({ params, request }) {
 			404,
 			`Project ${data.projectName} not found in repository ${repository.githubOwner}/${repository.githubRepo}.`
 		);
+	}
+
+	// Update the run's expected testruns count
+	if (data.testrunsCount > 0) {
+		[run] = await db
+			.update(runs)
+			.set({
+				testrunsCount: data.testrunsCount
+			})
+			.where(eq(runs.id, run.id))
+			.returning();
 	}
 
 	// Create the test definition

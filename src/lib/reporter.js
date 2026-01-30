@@ -34,6 +34,8 @@ export default class Pleye {
 	#debugging = false;
 	/** @type {string} */
 	#baseDirectory = '/';
+	/** @type {number} */
+	#expectedTestsCount = 0;
 	/**
 	 * Stores the current step index for each test.
 	 * Test are keyed by a JSON stringified version of their TestIdentifierParams.
@@ -54,7 +56,6 @@ export default class Pleye {
 		this.#baseDirectory = baseDirectory ?? '/';
 		this.#runData = {
 			startedAt: new Date(),
-			baseDirectory: this.#baseDirectory,
 			...runData
 		};
 	}
@@ -65,8 +66,14 @@ export default class Pleye {
 	 * @param {PW.Suite} suite
 	 */
 	onBegin(config, suite) {
+		this.#expectedTestsCount = suite.allTests().length;
+
 		this.#sendPayload('begin', {
-			run: this.#runData,
+			run: {
+				...this.#runData,
+				baseDirectory: this.#baseDirectory,
+				testrunsCount: this.#expectedTestsCount
+			},
 			projects: config.projects.map((project) => ({
 				name: project.name,
 				match: toArray(project.testMatch).map(String),
@@ -169,9 +176,13 @@ export default class Pleye {
 		this.#stepIndices.set(this.stepIndicesKey(test), -1);
 		if (this.#debugging) console.info('[Pleye] onTestBegin, stepIndices are', this.#stepIndices);
 
+		// If we're gonna retry a test, the expected tests count increases
+		if (result.retry) this.#expectedTestsCount++;
+
 		this.#sendPayload('test-begin', {
 			githubJobId: this.#runData.githubJobId,
 			projectName: project.name,
+			testrunsCount: this.#expectedTestsCount,
 			test: {
 				title,
 				path,

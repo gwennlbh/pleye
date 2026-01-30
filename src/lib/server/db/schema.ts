@@ -85,7 +85,7 @@ export const tests = pgTable(
 		/** Point with coords (line, column) */
 		locationInFile: point('location_in_file').notNull(),
 		/** Latest-known steps count, updated at end of every test run, used for progress reporting */
-		stepsCount: integer('steps_count').notNull()
+		stepsCount: integer('steps_count').notNull(),
 	},
 	(t) => [
 		index('tests_by_repository').on(t.repositoryId),
@@ -109,6 +109,8 @@ export const runs = pgTable(
 		pullRequestNumber: integer('pull_request_number'),
 		startedAt: timestamp('started_at').notNull(),
 		completedAt: timestamp('completed_at'),
+		/** Number of test runs to expect in this run */
+		testrunsCount: integer('testruns_count').notNull().default(0),
 		/** Github workflow job status */
 		status: text('status', {
 			enum: ['waiting', 'queued', 'in_progress', 'completed']

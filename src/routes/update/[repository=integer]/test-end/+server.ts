@@ -1,4 +1,4 @@
-import { errors, results, steps, testruns, tests } from '$lib/server/db/schema';
+import { errors, results, runs, steps, testruns, tests } from '$lib/server/db/schema';
 import { type } from 'arktype';
 import { createInsertSchema } from 'drizzle-arktype';
 import { findTestRun, parsePayload, TestIdentifier } from '../common';
@@ -30,9 +30,10 @@ export async function POST({ params, request }) {
 	if (data.stepsCount > 0) {
 		await db
 			.update(tests)
-			.set({ stepsCount: data.stepsCount })
-			.where(eq(tests.id, testrun.testId))
-			.returning();
+			.set({
+				stepsCount: data.stepsCount
+			})
+			.where(eq(tests.id, testrun.testId));
 	}
 
 	const [result] = await db
