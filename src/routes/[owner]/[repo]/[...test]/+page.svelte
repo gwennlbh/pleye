@@ -12,6 +12,7 @@
 	import { formatDistanceToNow } from 'date-fns';
 	import { FancyAnsi } from 'fancy-ansi';
 	import { projectsOfRepo } from '../data.remote.js';
+	import { browser } from '$app/environment';
 
 	const { params, data } = $props();
 	const { test, repo, testruns: runs } = $derived(data);
@@ -46,12 +47,41 @@
 				return '❓';
 		}
 	}
+
+	let repositoryUserRoot = $state('');
+	$effect(() => {
+		if (!browser) return;
+		repositoryUserRoot = localStorage.getItem('repositoryUserRoot') || '';
+	});
+
+	function vscodeURL({
+		filePath,
+		locationInFile
+	}: {
+		filePath: string;
+		locationInFile: [number, number];
+	}) {
+		return `vscode://file/${repositoryUserRoot}/${filePath}:${locationInFile.join(':')}`;
+	}
 </script>
+
+<svelte:window
+	onkeypress={(e) => {
+		if (e.key === 'e') {
+			window.open(vscodeURL(test));
+		}
+	}}
+/>
 
 <header>
 	<p>
-		<a href={resolve('/[owner]/[repo]', params)}>back</a> · 
-		<span class="parents">{[test.filePath, ...test.path].join(' / ')}</span>
+		<a href={resolve('/[owner]/[repo]', params)}>back</a> ·
+		<a title="click or E to open in VS Code" rel="external" href={vscodeURL(test)}>
+			{test.filePath}:{test.locationInFile.join(':')}
+		</a>
+		<span>
+			{['', ...test.path].join(' / ')}
+		</span>
 	</p>
 	<h1>
 		{test.title}
@@ -139,8 +169,13 @@
 							{/each}
 						</ul>
 						<ul class="errors">
-							{#each errors as { id, message, stack } (id)}
+							{#each errors as { id, message, stack, ...location } (id)}
 								<li>
+									{#if location.filePath && location.locationInFile}
+										<a rel="external" href={vscodeURL(location)}>
+											{location.filePath}:{location.locationInFile.join(':')}
+										</a>
+									{/if}
 									<p>
 										{@html ansiToHtml(stack || message || '')}
 									</p>
