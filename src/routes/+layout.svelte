@@ -1,6 +1,6 @@
 <script lang="ts">
 	import favicon from '$lib/assets/favicon.svg';
-	import '$lib/reset.css'
+	import '$lib/reset.css';
 
 	let { children } = $props();
 </script>
@@ -9,4 +9,10 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{@render children()}
+<svelte:boundary>
+	{@render children()}
+
+	{#snippet onerror()}
+		<h1>Oops!</h1>
+	{/snippet}
+</svelte:boundary>

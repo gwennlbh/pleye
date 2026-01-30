@@ -1,17 +1,14 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { FancyAnsi } from 'fancy-ansi';
-	import { branchURL, commitURL, pullRequestURL, workflowJobURL } from '$lib/github.js';
-	import { formatDistanceToNow } from 'date-fns';
-	import { projectsOfRepo, repository } from '../data.remote.js';
-	import { runsOfTest, testInRepo } from './data.remote.js';
 	import ExternalLink from '$lib/ExternalLink.svelte';
+	import { branchURL, commitURL, pullRequestURL, workflowJobURL } from '$lib/github.js';
 	import type { MapValues } from '$lib/utils.js';
+	import { formatDistanceToNow } from 'date-fns';
+	import { FancyAnsi } from 'fancy-ansi';
+	import { projectsOfRepo } from '../data.remote.js';
 
-	const { params } = $props();
-	const repo = $derived(await repository(params));
-	const test = $derived(await testInRepo({ repoId: repo.id, ...params }));
-	const runs = $derived(await runsOfTest(test.id));
+	const { params, data } = $props();
+	const { test, repo, testruns: runs } = $derived(data);
 	const projects = $derived(await projectsOfRepo(repo.id));
 
 	function ansiToHtml(input: string) {

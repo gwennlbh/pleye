@@ -18,6 +18,7 @@ export const testInRepo = query(type({ repoId: 'number', test: 'string' }), asyn
 		)
 	});
 
+	// FIXME: this makes the server crash for some reason. We use a load function instead.
 	if (!test) error(404, 'Test not found');
 
 	return test;
