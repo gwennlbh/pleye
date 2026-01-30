@@ -31,7 +31,7 @@
 			<a
 				href={resolve('/[owner]/[repo]/[...test]', {
 					...params,
-					test: [test.filePath.slice(1), ...test.path, test.title].join('/')
+					test: [test.filePath.replace(/^\//, ''), ...test.path, test.title].join('/')
 				})}
 			>
 				{test.title}
@@ -80,7 +80,7 @@
 							<a
 								href={resolve('/[owner]/[repo]/[...test]', {
 									...params,
-									test: [filepath.slice(1), ...path, title].join('/')
+									test: [filepath.replace(/^\//, ''), ...path, title].join('/')
 								})}
 							>
 								{[...path, title].join(' › ')}

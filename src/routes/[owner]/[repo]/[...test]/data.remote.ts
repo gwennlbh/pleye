@@ -12,7 +12,7 @@ export const testInRepo = query(type({ repoId: 'number', test: 'string' }), asyn
 	const test = await db.query.tests.findFirst({
 		where: and(
 			eq(tables.tests.repositoryId, params.repoId),
-			eq(tables.tests.filePath, filePath),
+			inArray(tables.tests.filePath, [filePath, '/' + filePath]),
 			eq(tables.tests.path, path),
 			eq(tables.tests.title, title)
 		)

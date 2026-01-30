@@ -28,5 +28,5 @@ export function parseTestPathParam(testParam: string): TestIdentifierParams {
 	const title = pathAndTitle.pop()!;
 	const path = pathAndTitle;
 
-	return { filePath: '/' + filepath.join('/'), path, title };
+	return { filePath: filepath.join('/'), path, title };
 }
