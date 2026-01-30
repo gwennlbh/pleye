@@ -9,6 +9,7 @@
 		repository,
 		testsOfRepoByFilename
 	} from './data.remote.js';
+	import { linkToTest } from './[...test]/links.js';
 
 	const { params } = $props();
 
@@ -48,12 +49,7 @@
 			{@const projectIds = new Set(test.testruns.map((tr) => tr.projectId))}
 			<li>
 				<span class="times">×{test.testruns.length}</span>
-				<a
-					href={resolve('/[owner]/[repo]/[...test]', {
-						...params,
-						test: [test.filePath.replace(/^\//, ''), ...test.path, test.title].join('/')
-					})}
-				>
+				<a href={linkToTest(params, test)}>
 					{test.title}
 				</a>
 				<span class="projects">
@@ -104,31 +100,26 @@
 			<li>
 				<details>
 					<summary>
-						{basename(filepath)} ({tests.length} tests)
+						{filepath} ({tests.length} tests)
 					</summary>
 					<ul>
-						{#each tests as { title, path, testruns, stepsCount, id } (id)}
-							{@const ongoing = testruns.find(
+						{#each tests as test (test.id)}
+							{@const ongoing = test.testruns.find(
 								(tr) =>
 									tr.run.status === 'in_progress' &&
 									tr.duration === null &&
 									tr.outcome !== 'skipped'
 							)}
 							<li>
-								[{stepsCount}]
+								[{test.stepsCount}]
 
 								{#if ongoing}
 									<code title={formatDistanceToNow(ongoing.startedAt, { addSuffix: true })}>
 										[ONGOING]
 									</code>
 								{/if}
-								<a
-									href={resolve('/[owner]/[repo]/[...test]', {
-										...params,
-										test: [filepath.replace(/^\//, ''), ...path, title].join('/')
-									})}
-								>
-									{[...path, title].join(' › ')}
+								<a href={linkToTest(params, test)}>
+									{[...test.path, test.title].join(' › ')}
 								</a>
 							</li>
 						{/each}
@@ -138,7 +129,6 @@
 		{/each}
 	</ul>
 </section>
-
 
 <style>
 	.flakies ul li {

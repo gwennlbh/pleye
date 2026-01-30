@@ -24,55 +24,64 @@ export const testInRepo = query(type({ repoId: 'number', test: 'string' }), asyn
 	return test;
 });
 
-export const runsOfTest = query(type('number'), async (id) => {
-	const testruns = await db.query.testruns.findMany({
-		where: eq(tables.testruns.testId, id),
-		orderBy: [desc(tables.testruns.startedAt)]
-	});
+export const runsOfTest = query(
+	type({ testId: 'number', branch: 'string | null' }),
+	async ({ testId: id, branch }) => {
+		const testruns = await db.query.testruns.findMany({
+			where: eq(tables.testruns.testId, id),
+			orderBy: [desc(tables.testruns.startedAt)]
+		});
 
-	const runs = await db.query.runs.findMany({
-		where: inArray(
-			tables.runs.id,
-			testruns.map((tr) => tr.runId)
-		)
-	});
+		const runs = await db.query.runs.findMany({
+			where: and(
+				inArray(
+					tables.runs.id,
+					testruns.map((tr) => tr.runId)
+				),
+				branch ? eq(tables.runs.branch, branch) : undefined
+			)
+		});
 
-	const steps = await db.query.steps.findMany({
-		where: inArray(
-			tables.steps.testrunId,
-			testruns.map((tr) => tr.id)
-		)
-	});
+		const steps = await db.query.steps.findMany({
+			where: inArray(
+				tables.steps.testrunId,
+				testruns.map((tr) => tr.id)
+			)
+		});
 
-	const results = await db.query.results.findMany({
-		where: inArray(
-			tables.results.testrunId,
-			testruns.map((tr) => tr.id)
-		)
-	});
+		const results = await db.query.results.findMany({
+			where: inArray(
+				tables.results.testrunId,
+				testruns.map((tr) => tr.id)
+			)
+		});
 
-	const errors = await db.query.errors.findMany({
-		where: inArray(
-			tables.errors.resultId,
-			results.map((res) => res.id)
-		)
-	});
+		const errors = await db.query.errors.findMany({
+			where: inArray(
+				tables.errors.resultId,
+				results.map((res) => res.id)
+			)
+		});
 
-	const richTestruns = testruns.map((testrun) => ({
-		...testrun,
-		steps: steps
-			.filter((step) => step.testrunId === testrun.id)
-			.map((step) => ({
-				...step,
-				errors: errors.filter((err) => err.stepId === step.id)
-			})),
-		run: runs.find((r) => r.id === testrun.runId)!,
-		result: results.find((res) => res.testrunId === testrun.id) || null,
-		errors: errors.filter((err) => {
-			const result = results.find((res) => res.testrunId === testrun.id);
-			return result ? err.resultId === result.id : false;
-		})
-	}));
+		const richTestruns = testruns
+			.filter((testrun) => runs.some((run) => run.id === testrun.runId))
+			.map((testrun) => ({
+				...testrun,
+				steps: steps
+					.filter((step) => step.testrunId === testrun.id)
+					.map((step) => ({
+						...step,
+						errors: errors.filter((err) => err.stepId === step.id)
+					})),
+				run: runs.find((r) => r.id === testrun.runId)!,
+				result: results.find((res) => res.testrunId === testrun.id) || null,
+				errors: errors.filter((err) => {
+					const result = results.find((res) => res.testrunId === testrun.id);
+					return result ? err.resultId === result.id : false;
+				})
+			}))
+			.toSorted((a, b) => a.run.githubJobId - b.run.githubJobId);
 
-	return Map.groupBy(richTestruns, (tr) => tr.run.pullRequestNumber || tr.run.branch);
-});
+		return Map.groupBy(richTestruns, (tr) => tr.run.pullRequestNumber || tr.run.branch);
+	}
+);

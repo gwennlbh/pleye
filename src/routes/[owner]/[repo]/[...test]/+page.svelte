@@ -13,6 +13,8 @@
 	import { FancyAnsi } from 'fancy-ansi';
 	import { projectsOfRepo } from '../data.remote.js';
 	import { browser } from '$app/environment';
+	import { page } from '$app/state';
+	import StatusIcon from '$lib/StatusIcon.svelte';
 
 	const { params, data } = $props();
 	const { test, repo, testruns: runs } = $derived(data);
@@ -27,25 +29,6 @@
 		}
 
 		return out;
-	}
-
-	type RichRun = MapValues<typeof runs>[number];
-
-	function statusicon(outcome: RichRun['outcome']) {
-		switch (outcome) {
-			case 'expected':
-				return '✅';
-			case 'unexpected':
-				return '❌';
-			case 'flaky':
-				return '⚠️';
-			case 'skipped':
-				return '⏭️';
-			case null:
-				return '⏳';
-			default:
-				return '❓';
-		}
 	}
 
 	let repositoryUserRoot = $state('');
@@ -79,6 +62,10 @@
 		<a title="click or E to open in VS Code" rel="external" href={vscodeURL(test)}>
 			{test.filePath}:{test.locationInFile.join(':')}
 		</a>
+		{#if page.url.searchParams.has('branch')}
+			@ {page.url.searchParams.get('branch')}
+			<a href={resolve('/[owner]/[repo]/[...test]', params)}>all</a>
+		{/if}
 		<span>
 			{['', ...test.path].join(' / ')}
 		</span>
@@ -115,40 +102,35 @@
 							<a rel="external" target="_blank" href={commitURL(repo, run).toString()}
 								>{run.commitSha.slice(0, 7)}
 							</a>
-							<span title="expected {testrun.expectedStatus}, actual {result?.status}"
-								>[{statusicon(testrun.outcome)}]</span
+							<StatusIcon {...testrun} />
+							<span
+								class:failure={testrun.outcome === 'unexpected'}
+								class:warning={testrun.outcome === 'flaky'}
+								class:subdued={testrun.outcome === 'skipped'}
 							>
-							{#if ongoing}
-								<code title={formatDistanceToNow(testrun.startedAt)}>
-									[ONGOING, Step {steps.length}/{test.stepsCount}{#if currentStep}
-										:&nbsp;{currentStep.category}
-										{currentStep.title}
-									{/if}
-									]
-								</code>
-							{/if}
-							Run
-							<a rel="external" target="_blank" href={workflowJobURL(repo, run).toString()}
-								>#{run.githubJobId}</a
-							>
-							on
-							<a
-								href={resolve('/[owner]/[repo]/projects/[project]', {
-									...params,
-									project: project.name
-								})}
-							>
-								{project.name}
-							</a>
-							{run.commitTitle}
-							by
-							{#if run.commitAuthorUsername}
-								<ExternalLink url={userProfileURL(run.commitAuthorUsername)}>
+								Run
+								<a rel="external" target="_blank" href={workflowJobURL(repo, run).toString()}
+									>#{run.githubJobId}</a
+								>
+								on
+								<a
+									href={resolve('/[owner]/[repo]/projects/[project]', {
+										...params,
+										project: project.name
+									})}
+								>
+									{project.name}
+								</a>
+								{run.commitTitle}
+								by
+								{#if run.commitAuthorUsername}
+									<ExternalLink url={userProfileURL(run.commitAuthorUsername)}>
+										{run.commitAuthorName}
+									</ExternalLink>
+								{:else}
 									{run.commitAuthorName}
-								</ExternalLink>
-							{:else}
-								{run.commitAuthorName}
-							{/if}
+								{/if}</span
+							>
 						</summary>
 						<ul>
 							{#each steps.filter((s) => s.errors.length > 0) as step (step.id)}

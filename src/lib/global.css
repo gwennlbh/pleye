@@ -31,3 +31,19 @@ a {
 li.empty {
 	color: gray;
 }
+
+.subdued {
+	color: gray;
+}
+
+.success {
+	color: greenyellow;
+}
+
+.failure {
+	color: rgb(143, 11, 11);
+}
+
+.warning {
+	color: orange;
+}
