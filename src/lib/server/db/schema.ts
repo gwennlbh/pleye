@@ -102,7 +102,9 @@ export const runs = pgTable(
 			.references(() => repositories.id, { onDelete: 'cascade' }),
 
 		githubJobId: bigint('github_job_id', { mode: 'number' }).notNull(),
+		githubJobName: text('github_job_name').notNull().default(''),
 		githubRunId: bigint('github_run_id', { mode: 'number' }).notNull(),
+		githubRunName: text('github_run_name').notNull().default(''),
 		baseDirectory: text('base_directory').default(''),
 		commitSha: text('commit_sha').notNull(),
 		commitTitle: text('commit_title').notNull().default(''),

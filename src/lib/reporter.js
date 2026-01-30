@@ -10,7 +10,9 @@
  * @property {string} serverOrigin Origin of the Pleye server, e.g. https://pleye.example.com
  * @property {number} repositoryGitHubId Github ID of the current repository, ${{ github.repository_id }}
  * @property {number} githubJobId ID of the current GitHub job we're on, ${{ github.job.check_run_id }}
+ * @property {string} githubJobName Name of the current GitHub job we're on, ${{ github.job }}
  * @property {number} githubRunId ID of the current GitHub run we're on, ${{ github.run_id }}
+ * @property {string} githubRunName Name of the current GitHub run we're on, ${{ github.workflow }}
  * @property {string} commitSha Current commit SHA
  * @property {string} commitTitle Current commit title
  * @property {string} commitDescription Current commit description
