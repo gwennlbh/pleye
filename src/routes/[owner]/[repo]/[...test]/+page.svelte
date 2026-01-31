@@ -30,6 +30,22 @@
 		return out;
 	}
 
+	function linkifyFilepaths(rootDirectory: string | null, input: string) {
+		if (!rootDirectory) return input;
+
+		const pattern = new RegExp(`${rootDirectory}/([^:]+):(\\d+):(\\d+)`, 'g');
+		console.log('Searchng for', pattern);
+
+		return input.replaceAll(pattern, (_match, relativePath, line, column) => {
+			const url = vscodeURL({
+				filePath: relativePath,
+				locationInFile: [Number(line), Number(column)]
+			});
+
+			return `<a rel="external" href="${url}">${relativePath}:${line}:${column}</a>`;
+		});
+	}
+
 	let repositoryUserRoot = $state('');
 	$effect(() => {
 		if (!browser) return;
@@ -160,14 +176,19 @@
 
 										<ul class="errors">
 											{#each errors as { id, message, stack, ...location } (id)}
+												{@const locationInStack = stack?.includes(`${run.baseDirectory}/${location.filePath}:${location.locationInFile?.join(':')}`)}
+
 												<li class="error">
-													{#if location.filePath && location.locationInFile}
+													{#if location.filePath && location.locationInFile && !locationInStack}
 														<a rel="external" href={vscodeURL(location)}>
 															{location.filePath}:{location.locationInFile.join(':')}
 														</a>
 													{/if}
 													<p>
-														{@html ansiToHtml(stack || message || '')}
+														{@html linkifyFilepaths(
+															run.baseDirectory,
+															ansiToHtml(stack || message || '')
+														)}
 													</p>
 												</li>
 											{/each}
