@@ -45,7 +45,7 @@
 	$effect(() => {
 		const timer = setInterval(() => {
 			now = new Date();
-		}, 1000);
+		}, 100);
 
 		return () => clearInterval(timer);
 	});
