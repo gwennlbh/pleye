@@ -88,7 +88,10 @@
 	<ul>
 		{#each groupedRuns as [runId, runs] (runId)}
 			{@const { commitSha, commitTitle, commitAuthorUsername, commitAuthorName, result } = runs[0]}
-			{@const jobNameTrimmer = commonPrefixAndSuffixTrimmer(runs.map((r) => r.githubJobName))}
+			{@const jobNameTrimmer = commonPrefixAndSuffixTrimmer(
+				runs.map((r) => r.githubJobName),
+				'0'
+			)}
 			{@const startedAt = new Date(Math.min(...runs.map((r) => r.startedAt.getTime())))}
 			{@const sortedRuns = runs.toSorted((a, b) =>
 				smartStringCompare(jobNameTrimmer(a.githubJobName), jobNameTrimmer(b.githubJobName))
@@ -148,18 +151,14 @@
 							{@const flakies = dones.filter((tr) => tr.outcome === 'flaky')}
 							{@const expecteds = dones.filter((tr) => tr.outcome === 'expected')}
 
-							{#snippet job()}
-								<span class="job-name">
-									<ExternalLink sneaky url={workflowJobURL(repo, run)}>
-										{jobNameTrimmer(run.githubJobName)}
-									</ExternalLink>
-								</span>
-							{/snippet}
-
 							<li class="testrun" class:has-progress-bar={run.status === 'in_progress'}>
+								<span class="job-name subdued">
+									[<ExternalLink sneaky url={workflowJobURL(repo, run)} title={run.githubJobName}>
+										{jobNameTrimmer(run.githubJobName)}
+									</ExternalLink>]
+								</span>
 								{#if run.status === 'in_progress'}
 									<span class="icon">·</span>
-									{@render job()}
 									<span class="failure">
 										{#if failures.length > 0}{failures.length}✘{/if}
 									</span>
@@ -211,17 +210,14 @@
 									{/if}
 								{:else if run.result === 'interrupted'}
 									<StatusIcon outcome={null} />
-									{@render job()}
 									<span class="subdued">interrupted</span>
 								{:else if run.result === 'passed'}
 									{#if flakies.length === 0}
 										<StatusIcon outcome="expected" />
-										{@render job()}
 										<span class="count">{successes.length}</span>
 										<span class="thing">passed</span>
 									{:else}
 										<StatusIcon outcome="flaky" />
-										{@render job()}
 										<span class="count">
 											<span class="warning">{flakies.length}</span>/{dones.length}
 										</span>
@@ -238,7 +234,6 @@
 									{/if}
 								{:else if run.result === 'failed'}
 									<StatusIcon outcome="unexpected" />
-									{@render job()}
 									<span class="count"
 										><span class="failure">{failures.length}</span>/{dones.length}
 									</span>
@@ -282,14 +277,16 @@
 
 	ul li {
 		display: grid;
-		grid-template-columns: max-content 3ch 4ch 7ch 1fr;
+		grid-template-columns: minmax(max-content, 4ch) max-content 4ch 7ch 1fr;
 		gap: 0 0.75em;
 		overflow-x: hidden;
 		align-items: center;
 		width: 100%;
 
 		&.has-progress-bar {
-			grid-template-columns: max-content 3ch repeat(3, 3ch) 5ch 100px 3ch 1fr 1fr;
+			grid-template-columns:
+				minmax(max-content, 4ch) max-content repeat(3, 3ch)
+				5ch 100px 3ch 1fr 1fr;
 		}
 
 		&:not(.has-progress-bar) + .has-progress-bar {

@@ -5,9 +5,10 @@
 		url: URL;
 		children: Snippet;
 		sneaky?: boolean;
+		title?: string;
 	}
 
-	const { url, children, sneaky = false }: Props = $props();
+	const { url, children, sneaky = false, title }: Props = $props();
 </script>
 
-<a class:sneaky rel="external" target="_blank" href={url.toString()}>{@render children()}</a>
+<a {title} class:sneaky rel="external" target="_blank" href={url.toString()}>{@render children()}</a>

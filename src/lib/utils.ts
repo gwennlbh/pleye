@@ -86,7 +86,16 @@ export function uniqueBy<T>(array: T[], fn: (item: T) => string | number): T[] {
 	return result;
 }
 
-export function commonPrefixAndSuffixTrimmer(strings: string[]): (s: string) => string {
+/**
+ *
+ * @param strings
+ * @param fillString left-pad strings that are smaller than the biggest trimmed string with this
+ * @returns
+ */
+export function commonPrefixAndSuffixTrimmer(
+	strings: string[],
+	fillString = ''
+): (s: string) => string {
 	if (strings.length === 0) return (s) => s;
 
 	let start = 0;
@@ -115,7 +124,14 @@ export function commonPrefixAndSuffixTrimmer(strings: string[]): (s: string) => 
 		}
 	}
 
-	return (s) => s.slice(start, s.length - end);
+	// Length of longest trimmed string
+	const trimmedLength = Math.max(...strings.map((s) => s.length - start - end));
+
+	return (s) => {
+		const trimmed = s.slice(start, s.length - end);
+		if (fillString) return trimmed.padStart(trimmedLength, fillString);
+		return trimmed;
+	};
 }
 
 export function smartStringCompare(a: string, b: string): number {
@@ -127,7 +143,6 @@ export function smartStringCompare(a: string, b: string): number {
 
 	const aIsNum = !isNaN(aNum);
 	const bIsNum = !isNaN(bNum);
-
 
 	if (aIsNum && bIsNum) {
 		return aNum - bNum;
