@@ -9,6 +9,9 @@ body {
 	gap: 3em;
 
 	color-scheme: light dark;
+
+	color: light-dark(#111, #eee);
+	background-color: light-dark(#fafafa, #121212);
 }
 
 code,
