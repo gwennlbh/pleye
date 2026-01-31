@@ -52,7 +52,7 @@ li.empty {
 }
 
 .failure {
-	color: light-dark(rgb(143, 11, 11), red);
+	color: light-dark(rgb(143, 11, 11), rgb(236, 74, 74));
 }
 
 .warning {
