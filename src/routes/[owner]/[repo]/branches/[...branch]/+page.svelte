@@ -8,12 +8,14 @@
 	import {
 		compareDesc as compareDatesDesc,
 		compareAsc as compareDatesAsc,
-		formatDistanceToNowStrict
+		formatDistanceToNowStrict,
+		intervalToDuration
 	} from 'date-fns';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { linkToTest } from '../../[...test]/links.js';
 	import { repository } from '../../data.remote.js';
 	import { runsOfBranch } from './data.remote.js';
+	import { formatDurationShort } from '$lib/utils.js';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
@@ -38,6 +40,15 @@
 	});
 
 	const opened = new SvelteSet<number>();
+
+	let now = $state(new Date());
+	$effect(() => {
+		const timer = setInterval(() => {
+			now = new Date();
+		}, 1000);
+
+		return () => clearInterval(timer);
+	});
 </script>
 
 <header>
@@ -144,6 +155,14 @@
 									</span>
 									<progress max={run.testrunsCount} value={dones.length}></progress>
 									{#if currentTestrun}
+										<span class="subdued">
+											{formatDurationShort(
+												intervalToDuration({
+													start: currentTestrun.startedAt,
+													end: now
+												})
+											)}
+										</span>
 										<!-- {@const max = currentTestrun.test.stepsCount}
 										{@const value = (currentStep?.index ?? 0) + 1}
 
