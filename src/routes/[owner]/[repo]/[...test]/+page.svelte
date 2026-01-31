@@ -11,7 +11,7 @@
 		workflowJobURL
 	} from '$lib/github.js';
 	import StatusIcon from '$lib/StatusIcon.svelte';
-	import { formatDurationShort } from '$lib/utils.js';
+	import { formatDurationShort } from '$lib/durations.js';
 	import { FancyAnsi } from 'fancy-ansi';
 	import { projectsOfRepo } from '../data.remote.js';
 

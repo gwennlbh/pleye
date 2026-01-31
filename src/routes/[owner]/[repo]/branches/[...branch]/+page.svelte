@@ -1,29 +1,26 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import {
+		durationIsShorter,
+		durationToMilliseconds,
+		formatDurationShort
+	} from '$lib/durations.js';
 	import ExternalLink from '$lib/ExternalLink.svelte';
 	import { commitURL, userProfileURL, workflowJobURL, workflowRunURL } from '$lib/github.js';
 	import StatusIcon from '$lib/StatusIcon.svelte';
 	import { testrunIsOngoing } from '$lib/testruns.js';
+	import { clamp, commonPrefixAndSuffixTrimmer, smartStringCompare } from '$lib/utils.js';
 	import {
 		compareDesc as compareDatesDesc,
-		compareAsc as compareDatesAsc,
 		formatDistanceToNowStrict,
-		intervalToDuration,
-		formatDuration
+		formatDuration,
+		intervalToDuration
 	} from 'date-fns';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { linkToTest } from '../../[...test]/links.js';
 	import { projectsOfRepo, repository } from '../../data.remote.js';
 	import { expectedTestrunDuration, runsOfBranch } from './data.remote.js';
-	import {
-		clamp,
-		commonPrefixAndSuffixTrimmer,
-		durationIsShorter,
-		durationToMilliseconds,
-		formatDurationShort,
-		smartStringCompare
-	} from '$lib/utils.js';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));

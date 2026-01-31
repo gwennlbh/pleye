@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { basename, parseDuration, roundDuration } from '$lib/utils.js';
+	import { parseDuration, roundDuration } from '$lib/durations.js';
 	import { formatDistanceToNow, formatDuration } from 'date-fns';
+	import { linkToTest } from './[...test]/links.js';
 	import {
 		branchesOfRepo,
 		flakyTests,
@@ -10,7 +11,6 @@
 		repository,
 		testsOfRepoByFilename
 	} from './data.remote.js';
-	import { linkToTest } from './[...test]/links.js';
 
 	const { params } = $props();
 
