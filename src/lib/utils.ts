@@ -1,5 +1,6 @@
 import type { Type } from 'arktype';
 import type * as DateFns from 'date-fns';
+import { hoursToMilliseconds, minutesToMilliseconds, secondsToMilliseconds } from 'date-fns';
 
 export function keys<T extends {}>(obj: T): (keyof T)[] {
 	return Object.keys(obj) as (keyof T)[];
@@ -149,4 +150,24 @@ export function smartStringCompare(a: string, b: string): number {
 	}
 
 	return a.localeCompare(b);
+}
+
+export function durationToMilliseconds({
+	days = 0,
+	hours = 0,
+	minutes = 0,
+	seconds = 0
+}: DateFns.Duration): number {
+	return (
+		hoursToMilliseconds(days * 24 + hours) +
+		minutesToMilliseconds(minutes) +
+		secondsToMilliseconds(seconds)
+	);
+}
+
+/**
+ * Returns a < b
+ */
+export function durationIsShorter(a: DateFns.Duration, b: DateFns.Duration): boolean {
+	return durationToMilliseconds(a) < durationToMilliseconds(b);
 }

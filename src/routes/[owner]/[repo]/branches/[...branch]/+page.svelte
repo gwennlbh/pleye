@@ -9,20 +9,24 @@
 		compareDesc as compareDatesDesc,
 		compareAsc as compareDatesAsc,
 		formatDistanceToNowStrict,
-		intervalToDuration
+		intervalToDuration,
+		formatDuration
 	} from 'date-fns';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { linkToTest } from '../../[...test]/links.js';
-	import { repository } from '../../data.remote.js';
-	import { runsOfBranch } from './data.remote.js';
+	import { projectsOfRepo, repository } from '../../data.remote.js';
+	import { expectedTestrunDuration, runsOfBranch } from './data.remote.js';
 	import {
 		commonPrefixAndSuffixTrimmer,
+		durationIsShorter,
+		durationToMilliseconds,
 		formatDurationShort,
 		smartStringCompare
 	} from '$lib/utils.js';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
+	const projects = $derived(await projectsOfRepo(repo.id));
 
 	const ongoing = $derived(
 		await runsOfBranch({ ...params, repoId: repo.id, status: 'in_progress' })
@@ -173,24 +177,54 @@
 									</span>
 									<progress max={run.testrunsCount} value={dones.length}></progress>
 									{#if currentTestrun}
-										<span class="subdued">
-											{formatDurationShort(
-												intervalToDuration({
-													start: currentTestrun.startedAt,
-													end: now
-												})
-											)}
-										</span>
-										<!-- {@const max = currentTestrun.test.stepsCount}
-										{@const value = (currentStep?.index ?? 0) + 1}
+										{@const title = currentTestrun.test.title}
+										{@const project = projects.get(currentTestrun.projectId)!}
+										{@const duration = intervalToDuration({
+											start: currentTestrun.startedAt,
+											end: now
+										})}
 
-										<span class="step-progress subdued">
-											{#if max > 0}
-												{((value / max) * 100).toFixed(0).padStart(2, ' ')}%
+										{#await expectedTestrunDuration(currentTestrun)}
+											<span class="subdued">
+												{formatDurationShort(duration)}
+											</span>
+										{:then expectedDuration}
+											{#if durationIsShorter(duration, expectedDuration)}
+												{@const currently = durationToMilliseconds(duration)}
+												{@const expected = durationToMilliseconds(expectedDuration)}
+												<span
+													class="subdued"
+													title="Based on main's passing runs, {title} on {project.name} runs in {formatDuration(
+														expectedDuration
+													)}"
+												>
+													{((currently / expected) * 100).toFixed(0).padStart(2, ' ')}%
+												</span>
 											{:else}
-												0%
+												<span
+													class="failure"
+													title="Test is running overtime. It takes on average {formatDuration(
+														expectedDuration
+													)} on {project.name}"
+												>
+													{formatDurationShort(duration)}!
+												</span>
 											{/if}
-										</span> -->
+										{:catch}
+											<span class="subdued">{formatDurationShort(duration)}</span>
+										{/await}
+										<span class="subdued">
+											{'{'}<a
+												class="sneaky"
+												title={project.name}
+												href={resolve('/[owner]/[repo]/projects/[project]', {
+													...params,
+													project: project.name
+												})}
+											>
+												{project.abbreviation}
+											</a>{'}'}
+										</span>
 										<span class="rest">
 											<a
 												class="sneaky"
@@ -198,11 +232,6 @@
 											>
 												{currentTestrun.test.title}
 											</a>
-											<!-- <span class="step subdued">
-												{#if currentStep}
-													{[...currentStep.path, currentStep.title].join(' › ')}
-												{/if}
-											</span> -->
 										</span>
 									{:else}
 										<span class="step-progress"></span>
@@ -286,7 +315,7 @@
 		&.has-progress-bar {
 			grid-template-columns:
 				minmax(max-content, 4ch) max-content repeat(3, 3ch)
-				5ch 100px 3ch 1fr 1fr;
+				5ch 100px 4ch 4ch 1fr 1fr;
 		}
 
 		&:not(.has-progress-bar) + .has-progress-bar {

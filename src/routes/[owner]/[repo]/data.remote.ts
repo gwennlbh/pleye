@@ -20,12 +20,25 @@ export const repository = query(type({ owner: 'string', repo: 'string' }), async
 	return repo;
 });
 
+// TODO make this configurable
+const PROJECT_ABBREVIATIONS: Record<string, string> = {
+	chromium: 'cr',
+	firefox: 'ff',
+	webkit: 'wk'
+};
+
+function projectNameAbbreviation(name: string): string {
+	return PROJECT_ABBREVIATIONS[name.toLowerCase()] ?? name.slice(0, 2);
+}
+
 export const projectsOfRepo = query(type('number'), async (repo) => {
 	const projects = await db.query.projects.findMany({
 		where: eq(tables.projects.repositoryId, repo)
 	});
 
-	return new Map(projects.map((p) => [p.id, p]));
+	return new Map(
+		projects.map((p) => [p.id, { ...p, abbreviation: projectNameAbbreviation(p.name) }])
+	);
 });
 
 export const testsOfRepoByFilename = query(type('number'), async (repo) => {

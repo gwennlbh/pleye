@@ -1,12 +1,12 @@
 import { query } from '$app/server';
 import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
-import { uniqueBy } from '$lib/utils';
+import { parseDuration, uniqueBy } from '$lib/utils';
 import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { compareDesc as compareDatesDesc } from 'date-fns';
 import { createSelectSchema } from 'drizzle-arktype';
-import { and, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, avg, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 
 export const runsOfBranch = query(
 	type({
@@ -70,28 +70,43 @@ export const runsOfBranch = query(
 	}
 );
 
-export const progressOfTestrun = query(type('number'), async (testrunId) => {
-	const testrun = await db.query.testruns.findFirst({
-		where: eq(tables.testruns.id, testrunId)
-	});
-	if (!testrun) {
-		throw error(404, 'Testrun not found');
+export const expectedTestrunDuration = query.batch(
+	type({ testId: 'number', projectId: 'number' }),
+	async (testruns) => {
+		// Get average of all testrun durations for the given testrun's test and project, considering only passing testruns that have their run on the main branch
+
+		const results = await db
+			.select({
+				testId: tables.testruns.testId,
+				projectId: tables.testruns.projectId,
+				averageDuration: avg(tables.testruns.duration)
+			})
+			.from(tables.testruns)
+			.leftJoin(tables.runs, eq(tables.runs.id, tables.testruns.runId))
+			.leftJoin(tables.tests, eq(tables.tests.id, tables.testruns.testId))
+			.where(
+				and(
+					eq(tables.runs.branch, 'main'),
+					isNotNull(tables.testruns.duration),
+					eq(tables.testruns.outcome, 'expected'),
+					inArray(
+						tables.testruns.testId,
+						testruns.map((tr) => tr.testId)
+					),
+					inArray(
+						tables.testruns.projectId,
+						testruns.map((tr) => tr.projectId)
+					)
+				)
+			)
+			.groupBy(({ testId, projectId }) => [testId, projectId]);
+
+		console.log(results);
+
+		return ({ testId, projectId }) =>
+			parseDuration(
+				results.find((r) => r.testId === testId && r.projectId === projectId)?.averageDuration ??
+					'00:00:00'
+			);
 	}
-
-	const test = await db.query.tests.findFirst({
-		where: eq(tables.tests.id, testrun.testId),
-		columns: {
-			stepsCount: true
-		}
-	});
-
-	if (!test) throw new Error('Test not found');
-
-	const [currentStep] = await db.query.steps.findMany({
-		where: and(eq(tables.steps.testrunId, testrun.id), eq(tables.steps.retry, testrun.retries)),
-		orderBy: [desc(tables.steps.index)],
-		limit: 1
-	});
-
-	return [currentStep ? currentStep.index + 1 : 0, test.stepsCount];
-});
+);
