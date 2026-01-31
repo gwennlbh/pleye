@@ -56,9 +56,11 @@ export function formatDurationShort(duration: string | DateFns.Duration): string
 		seconds = 0
 	} = typeof duration === 'string' ? parseDuration(duration) : duration;
 
+
 	if (days) return `${days}d`;
 	if (hours) return `${hours}h`;
 	if (minutes) return `${minutes}m`;
+	if (seconds < 0) return '0s';
 	if (Math.round(seconds) >= 1) return `${Math.round(seconds)}s`;
 	return `${Math.round(seconds * 1000)}ms`;
 }
