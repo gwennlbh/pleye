@@ -13,16 +13,24 @@
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
-	let { ongoing, completed } = $derived(await runsOfBranch({ ...params, repoId: repo.id }));
+
+	const ongoing = $derived(
+		await runsOfBranch({ ...params, repoId: repo.id, status: 'in_progress' })
+	);
+	const completed = $derived(
+		await runsOfBranch({ ...params, repoId: repo.id, status: 'completed' })
+	);
 
 	let interval: number | NodeJS.Timeout | undefined = $state();
 	$effect(() => {
 		interval = setInterval(
 			() => {
-				void runsOfBranch({ ...params, repoId: repo.id }).refresh();
+				void runsOfBranch({ ...params, repoId: repo.id, status: 'in_progress' }).refresh();
 			},
 			Number(page.url.searchParams.get('refresh') ?? 10) * 1000
 		);
+
+		return () => clearInterval(interval);
 	});
 
 	const opened = new SvelteSet<number>();
@@ -165,13 +173,15 @@
 								{:else if run.result === 'passed'}
 									{#if flakies.length === 0}
 										<StatusIcon outcome="expected" />
-										<span>{successes.length} passed</span>
+										<span class="count">{successes.length}</span>
+										<span class="thing">passed</span>
 									{:else}
 										<StatusIcon outcome="flaky" />
+										<span class="count">
+											<span class="warning">{flakies.length}</span>/{dones.length}
+										</span>
+										<span class="thing"> flakes: </span>
 										<span class="flakies">
-											<span class="warning">
-												{flakies.length}/{dones.length} flakies:
-											</span>
 											{#each flakies as flaky, i (flaky.id)}
 												{#if i > 0},
 												{/if}
@@ -183,9 +193,12 @@
 									{/if}
 								{:else if run.result === 'failed'}
 									<StatusIcon outcome="unexpected" />
+									<span class="count"
+										><span class="failure">{failures.length}</span>/{dones.length}
+									</span>
+									<span class="thing failure"> failed: </span>
 									<span class="failures">
 										<span class="failure">
-											{failures.length}/{dones.length} failed:
 											{#each failures.slice(0, 4) as failure, i (failure.id)}
 												{#if i > 0},
 												{/if}
@@ -215,7 +228,7 @@
 
 	ul li {
 		display: grid;
-		grid-template-columns: max-content 1fr;
+		grid-template-columns: max-content 4ch 7ch 1fr;
 		gap: 0 0.75em;
 		overflow-x: hidden;
 		align-items: center;
@@ -223,6 +236,14 @@
 
 		&.has-progress-bar {
 			grid-template-columns: max-content repeat(3, 3ch) 5ch 100px 3ch 1fr 1fr;
+		}
+
+		&:not(.has-progress-bar) + .has-progress-bar {
+			margin-top: 0.5em;
+		}
+
+		.count {
+			text-align: right;
 		}
 	}
 

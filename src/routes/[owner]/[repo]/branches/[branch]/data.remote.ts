@@ -1,64 +1,69 @@
 import { query } from '$app/server';
 import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
-import { testrunIsOngoing } from '$lib/testruns';
+import { uniqueBy } from '$lib/utils';
 import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { createSelectSchema } from 'drizzle-arktype';
+import { and, desc, eq, isNotNull } from 'drizzle-orm';
 
-export const runsOfBranch = query(type({ repoId: 'number', branch: 'string' }), async (params) => {
-	const runs = await db.query.runs.findMany({
-		where: and(eq(tables.runs.repositoryId, params.repoId), eq(tables.runs.branch, params.branch)),
-		orderBy: [desc(tables.runs.startedAt)]
-	});
+export const runsOfBranch = query(
+	type({
+		repoId: 'number',
+		branch: 'string',
+		status: createSelectSchema(tables.runs).get('status')
+	}),
+	async (params) => {
+		const query = db
+			.select()
+			.from(tables.runs)
+			.leftJoin(tables.testruns, eq(tables.testruns.runId, tables.runs.id))
+			.leftJoin(tables.tests, eq(tables.tests.id, tables.testruns.testId))
+			.leftJoin(tables.steps, eq(tables.steps.testrunId, tables.testruns.id))
+			.where(
+				and(
+					eq(tables.runs.repositoryId, params.repoId),
+					eq(tables.runs.branch, params.branch),
+					// TODO find a way to keep runs that are part of the same workflow run but have statuses
+					// other than the requested one, as long as at least one run matches the status.
+					// eq(tables.runs.status, params.status),
+					isNotNull(tables.runs.id),
+					isNotNull(tables.testruns.id),
+					isNotNull(tables.tests.id),
+					isNotNull(tables.steps.id)
+				)
+			);
 
-	const testruns = await db.query.testruns.findMany({
-		where: inArray(
-			tables.testruns.runId,
-			runs.map((run) => run.id)
-		)
-	});
+		const rows = await query;
 
-	const tests = await db.query.tests.findMany({
-		where: inArray(
-			tables.tests.id,
-			testruns.map((tr) => tr.testId)
-		)
-	});
+		const richRuns = uniqueBy(
+			rows.map((row) => ({
+				...row.runs,
+				testruns: uniqueBy(
+					rows
+						.filter((r) => r.runs.id === row.runs.id)
+						.map((r) => ({
+							...r.testruns!,
+							test: r.tests!,
+							steps: rows.filter((s) => s.testruns?.id === r.testruns!.id).map((s) => s.steps!)
+						})),
+					(tr) => tr.id
+				)
+			})),
+			(run) => run.id
+		);
 
-	const steps = await db.query.steps.findMany({
-		where: inArray(
-			tables.steps.testrunId,
-			testruns.map((tr) => tr.id)
-		)
-	});
+		const byWorkflow = Map.groupBy(richRuns, (run) => run.githubRunId);
 
-	const richRuns = runs.map((run) => ({
-		...run,
-		testruns: testruns
-			.filter((tr) => tr.runId === run.id)
-			.map((tr) => ({
-				...tr,
-				steps: steps.filter((step) => step.testrunId === tr.id),
-				test: tests.find((test) => test.id === tr.testId)!
-			}))
-	}));
-
-	const byWorkflowRun = Map.groupBy(richRuns, (run) => run.githubRunId);
-
-	const ongoing: typeof byWorkflowRun = new Map();
-	const completed: typeof byWorkflowRun = new Map();
-
-	for (const [key, runs] of byWorkflowRun) {
-		if (runs.some((run) => run.status !== 'completed')) {
-			ongoing.set(key, runs);
-		} else {
-			completed.set(key, runs);
+		for (const [githubRunId, runs] of byWorkflow) {
+			if (!runs.some((r) => r.status === params.status)) {
+				byWorkflow.delete(githubRunId);
+			}
 		}
-	}
 
-	return { ongoing, completed };
-});
+		return byWorkflow;
+	}
+);
 
 export const progressOfTestrun = query(type('number'), async (testrunId) => {
 	const testrun = await db.query.testruns.findFirst({

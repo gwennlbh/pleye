@@ -62,3 +62,25 @@ export function formatDurationShort(duration: string | DateFns.Duration): string
 	if (seconds > 1) return `${Math.round(seconds)}s`;
 	return `${Math.round(seconds * 1000)}ms`;
 }
+
+/**
+ * Removes duplicates from an array based on a key function
+ * Preserves order 
+ * @param array 
+ * @param fn 
+ * @returns 
+ */
+export function uniqueBy<T>(array: T[], fn: (item: T) => string | number): T[] {
+	const seen = new Set<string | number>();
+	const result: T[] = [];
+
+	for (const item of array) {
+		const key = fn(item);
+		if (!seen.has(key)) {
+			seen.add(key);
+			result.push(item);
+		}
+	}
+
+	return result;
+}
