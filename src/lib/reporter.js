@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import * as path from 'node:path';
+import { readFileSync } from 'node:fs';
 
 /**
  * @import { Inputs } from '../routes/update/[repository=integer]/inputs';
@@ -235,7 +236,11 @@ export default class Pleye {
 	 */
 	onTestEnd(test, result) {
 		if (this.#debugging) console.info('[Pleye] onTestEnd, attachments are', result.attachments);
-		if (this.#debugging) console.info('[Pleye] onTestEnd, the following trace viewer URLs were derived:', result.attachments.map(a => this.#attachmentTraceViewerURL(a)));
+		if (this.#debugging)
+			console.info(
+				'[Pleye] onTestEnd, the following trace viewer URLs were derived:',
+				result.attachments.map((a) => this.#attachmentTraceViewerURL(a))
+			);
 
 		this.#sendPayload('test-end', {
 			githubJobId: this.#runData.githubJobId,
@@ -367,10 +372,15 @@ export default class Pleye {
 	 */
 	#attachmentTraceViewerURL(attachment) {
 		if (!this.#attachmentIsTrace(attachment)) return null;
-		if (!attachment.body) return null;
 		if (!attachment.path) return null;
 
-		const sha1 = calculateSha1(attachment.body);
+		let body = attachment.body;
+		if (!body) {
+			// Read from disk
+			body = readFileSync(attachment.path);
+		}
+
+		const sha1 = calculateSha1(body);
 		const extension = path.extname(attachment.path);
 
 		if (!extension.startsWith('.')) return null;
