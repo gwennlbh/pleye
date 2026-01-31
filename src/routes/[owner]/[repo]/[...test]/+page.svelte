@@ -90,7 +90,7 @@
 			{/if}
 		</h2>
 		<ul>
-			{#each testruns as { run, errors, ...testrun } (testrun.id)}
+			{#each testruns as { run, results, ...testrun } (testrun.id)}
 				{@const project = projects.get(testrun.projectId)!}
 				<li>
 					<details open={run.commitSha === latestCommit}>
@@ -142,20 +142,38 @@
 							</span>
 						</summary>
 
-						<ul class="errors">
-							{#each errors as { id, message, stack, ...location } (id)}
-								<li class="error">
-									{#if location.filePath && location.locationInFile}
-										<a rel="external" href={vscodeURL(location)}>
-											{location.filePath}:{location.locationInFile.join(':')}
-										</a>
-									{/if}
-									<p>
-										{@html ansiToHtml(stack || message || '')}
-									</p>
-								</li>
-							{/each}
-						</ul>
+						{#if results.some((r) => r.errors.length > 0)}
+							<ul class="results">
+								{#each results.toSorted((a, b) => a.retry - b.retry) as { errors, traceViewerUrl, retry, id, status } (id)}
+									<li class="result" class:no-errors={errors.length === 0}>
+										<header>
+											<StatusIcon {status} />
+											<strong>
+												{retry ? `Retry #${retry}` : 'Initial run'}
+											</strong>
+											{#if traceViewerUrl}
+												<ExternalLink url={traceViewerUrl}>trace</ExternalLink>
+											{/if}
+										</header>
+
+										<ul class="errors">
+											{#each errors as { id, message, stack, ...location } (id)}
+												<li class="error">
+													{#if location.filePath && location.locationInFile}
+														<a rel="external" href={vscodeURL(location)}>
+															{location.filePath}:{location.locationInFile.join(':')}
+														</a>
+													{/if}
+													<p>
+														{@html ansiToHtml(stack || message || '')}
+													</p>
+												</li>
+											{/each}
+										</ul>
+									</li>
+								{/each}
+							</ul>
+						{/if}
 					</details>
 				</li>
 			{/each}
@@ -164,8 +182,16 @@
 {/each}
 
 <style>
-	.errors:not(:empty) {
+	.result {
 		margin: 1em 0 2em;
+
+		&.no-errors {
+			margin: 1em 0;
+		}
+	}
+
+	.errors {
+		margin-top: 0.5em;
 	}
 
 	.error {
@@ -183,5 +209,9 @@
 		display: inline-grid;
 		grid-template-columns: max-content 4ch 12ch 40vw max-content;
 		gap: 0 0.75em;
+	}
+
+	details:open > summary {
+		margin-bottom: 0.5em;
 	}
 </style>
