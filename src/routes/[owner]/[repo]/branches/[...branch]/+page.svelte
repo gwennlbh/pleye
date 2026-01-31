@@ -1,11 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import {
-		durationIsShorter,
-		durationToMilliseconds,
-		formatDurationShort
-	} from '$lib/durations.js';
+	import { durationIsLonger, durationToMilliseconds, formatDurationShort } from '$lib/durations.js';
 	import ExternalLink from '$lib/ExternalLink.svelte';
 	import { commitURL, userProfileURL, workflowJobURL, workflowRunURL } from '$lib/github.js';
 	import StatusIcon from '$lib/StatusIcon.svelte';
@@ -186,7 +182,16 @@
 												{formatDurationShort(duration)}
 											</span>
 										{:then expectedDuration}
-											{#if durationIsShorter(duration, expectedDuration, { seconds: 2 })}
+											{#if durationIsLonger(duration, expectedDuration, { seconds: 2 })}
+												<span
+													class="failure"
+													title="Test is running overtime. It takes on average {formatDuration(
+														expectedDuration
+													)} on {project.name}"
+												>
+													{formatDurationShort(duration)}!
+												</span>
+											{:else}
 												{@const currently = durationToMilliseconds(duration)}
 												{@const expected = durationToMilliseconds(expectedDuration)}
 												<span
@@ -196,15 +201,6 @@
 													)}"
 												>
 													{(clamp(currently / expected) * 100).toFixed(0).padStart(2, ' ')}%
-												</span>
-											{:else}
-												<span
-													class="failure"
-													title="Test is running overtime. It takes on average {formatDuration(
-														expectedDuration
-													)} on {project.name}"
-												>
-													{formatDurationShort(duration)}!
 												</span>
 											{/if}
 										{:catch}

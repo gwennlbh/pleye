@@ -15,14 +15,14 @@ export function durationToMilliseconds({
 }
 
 /**
- * Returns a + tolerance < b
+ * Returns a > b + tolerance
  */
-export function durationIsShorter(
+export function durationIsLonger(
 	a: DateFns.Duration,
 	b: DateFns.Duration,
 	tolerance: DateFns.Duration = { seconds: 0 }
 ): boolean {
-	return durationToMilliseconds(a) + durationToMilliseconds(tolerance) < durationToMilliseconds(b);
+	return durationToMilliseconds(a) > durationToMilliseconds(b) + durationToMilliseconds(tolerance);
 }
 
 
