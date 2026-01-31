@@ -152,7 +152,9 @@
 												{retry ? `Retry #${retry}` : 'Initial run'}
 											</strong>
 											{#if traceViewerUrl}
-												<ExternalLink url={traceViewerUrl}>trace</ExternalLink>
+												<ExternalLink url={traceViewerUrl}>View trace</ExternalLink>
+											{:else if errors.length > 0}
+												<span class="subdued">No trace</span>
 											{/if}
 										</header>
 
@@ -182,6 +184,17 @@
 {/each}
 
 <style>
+	section {
+		--l-muted: color-mix(in srgb, currentColor 5%, transparent);
+		--d-muted: color-mix(in srgb, currentColor 7%, transparent);
+		--muted: light-dark(var(--l-muted), var(--d-muted));
+	}
+
+	.results {
+		padding-left: 1.25em;
+		border-left: 3px solid var(--muted);
+	}
+
 	.result {
 		margin: 1em 0 2em;
 
@@ -196,7 +209,7 @@
 
 	.error {
 		padding: 1.5em;
-		background: color-mix(in srgb, currentColor 5%, transparent);
+		background: var(--muted);
 		border-radius: 0.5em;
 		font-size: 0.9em;
 		max-width: 800px;
@@ -205,13 +218,22 @@
 		margin-bottom: 0.5em;
 	}
 
+	summary {
+		display: flex;
+		align-items: center;
+		flex-wrap: nowrap;
+		gap: 0.75em;
+	}
+
 	.testrun-header {
 		display: inline-grid;
 		grid-template-columns: max-content 4ch 12ch 40vw max-content;
 		gap: 0 0.75em;
 	}
 
-	details:open > summary {
-		margin-bottom: 0.5em;
+	summary .title {
+		white-space: nowrap;
+		overflow-x: hidden;
+		text-overflow: ellipsis;
 	}
 </style>
