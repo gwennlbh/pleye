@@ -49,14 +49,14 @@ export function push<E extends EventKind>(
 	key: E,
 	...data: { [E in EventKind]: EventData[E] extends [string, ...infer Args] ? Args : never }[E]
 ): void {
-	console.log(`Pushing event ${key} with`, data);
+	// console.log(`Pushing event ${key} with`, data);
 
-	warehouse.push([
-		key,
-		nanoid(10),
-		// @ts-expect-error TODO: fix typing here
-		...data
-	] as const);
+	// warehouse.push([
+	// 	key,
+	// 	nanoid(10),
+	// 	// @ts-expect-error TODO: fix typing here
+	// 	...data
+	// ] as const);
 }
 
 export type EventFilter<E extends EventKind> = {
