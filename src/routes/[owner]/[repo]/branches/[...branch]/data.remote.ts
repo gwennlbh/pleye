@@ -27,6 +27,8 @@ export const runsOfBranch = query(
 					// TODO find a way to keep runs that are part of the same workflow run but have statuses
 					// other than the requested one, as long as at least one run matches the status.
 					// eq(tables.runs.status, params.status),
+					// Maybe we should group by in SQL land, 
+					// and aggregate needed data for steps with array_agg ?
 					isNotNull(tables.runs.id),
 					isNotNull(tables.testruns.id),
 					isNotNull(tables.tests.id),

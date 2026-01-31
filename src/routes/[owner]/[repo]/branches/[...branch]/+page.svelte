@@ -2,14 +2,14 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import ExternalLink from '$lib/ExternalLink.svelte';
-	import { commitURL, userProfileURL, workflowJobURL, workflowRunURL } from '$lib/github.js';
+	import { commitURL, userProfileURL, workflowRunURL } from '$lib/github.js';
+	import StatusIcon from '$lib/StatusIcon.svelte';
 	import { testrunIsOngoing } from '$lib/testruns.js';
 	import { formatDistanceToNowStrict } from 'date-fns';
-	import { repository } from '../../data.remote';
-	import { runsOfBranch } from './data.remote';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { linkToTest } from '../../[...test]/links.js';
-	import StatusIcon from '$lib/StatusIcon.svelte';
+	import { repository } from '../../data.remote.js';
+	import { runsOfBranch } from './data.remote.js';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
