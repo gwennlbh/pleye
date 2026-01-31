@@ -1,6 +1,8 @@
 import { query } from '$app/server';
+import { projectNameAbbreviation } from '$lib/projects';
 import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
+import { uniqueBy } from '$lib/utils';
 import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { and, avg, count, desc, eq, gt, inArray, isNotNull, max, sql } from 'drizzle-orm';
@@ -20,16 +22,7 @@ export const repository = query(type({ owner: 'string', repo: 'string' }), async
 	return repo;
 });
 
-// TODO make this configurable
-const PROJECT_ABBREVIATIONS: Record<string, string> = {
-	chromium: 'cr',
-	firefox: 'ff',
-	webkit: 'wk'
-};
 
-function projectNameAbbreviation(name: string): string {
-	return PROJECT_ABBREVIATIONS[name.toLowerCase()] ?? name.slice(0, 2);
-}
 
 export const projectsOfRepo = query(type('number'), async (repo) => {
 	const projects = await db.query.projects.findMany({
@@ -41,37 +34,51 @@ export const projectsOfRepo = query(type('number'), async (repo) => {
 	);
 });
 
-export const testsOfRepoByFilename = query(type('number'), async (repo) => {
-	const tests = await db.query.tests.findMany({
-		where: eq(tables.tests.repositoryId, repo)
-	});
+export const testsWithLatestTestrun = query(
+	type({ repoId: 'number', branch: 'string' }),
+	async (params) => {
+		const testruns = await db
+			.select()
+			.from(tables.testruns)
+			.leftJoin(tables.runs, eq(tables.runs.id, tables.testruns.runId))
+			.leftJoin(tables.tests, eq(tables.tests.id, tables.testruns.testId))
+			.where(
+				and(
+					eq(tables.tests.repositoryId, params.repoId),
+					eq(tables.runs.branch, params.branch),
+					isNotNull(tables.tests.id),
+					isNotNull(tables.runs.id)
+				)
+			);
 
-	const testruns = await db.query.testruns.findMany({
-		where: inArray(
-			tables.testruns.testId,
-			tests.map((t) => t.id)
-		)
-	});
+		const testrunsPerProject = Map.groupBy(testruns, ({ testruns }) => testruns.projectId);
 
-	const runs = await db.query.runs.findMany({
-		where: inArray(
-			tables.runs.id,
-			testruns.map((tr) => tr.runId)
-		)
-	});
+		const tests = uniqueBy(
+			testruns.map(({ tests }) => tests).filter((t) => t !== null),
+			(t) => t.id
+		);
 
-	const testWithRuns = tests.map((t) => ({
-		...t,
-		testruns: testruns
-			.filter((tr) => tr.testId === t.id)
-			.map((tr) => ({
-				...tr,
-				run: runs.find((r) => r.id === tr.runId)!
-			}))
-	}));
-
-	return Map.groupBy(testWithRuns, (t) => t.filePath);
-});
+		return tests.map((t) => ({
+			...t,
+			latestTestruns: testrunsPerProject
+				.values()
+				.toArray()
+				.map((packets) =>
+					packets
+						.filter(({ testruns }) => testruns.testId === t.id)
+						.filter((p) => p.runs !== null)
+						.map(({ testruns, runs }) => ({
+							...testruns,
+							run: runs!
+						}))
+						.filter((tr) => tr.run !== undefined)
+						.toSorted((a, b) => a.startedAt.getTime() - b.startedAt.getTime())
+						.at(-1)
+				)
+				.filter((tr) => tr !== undefined)
+		}));
+	}
+);
 
 export const flakyTests = query(type('number'), async (repoId) => {
 	return await db

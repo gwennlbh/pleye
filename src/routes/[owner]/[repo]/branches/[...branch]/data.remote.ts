@@ -6,7 +6,7 @@ import { uniqueById } from '$lib/utils';
 import { type } from 'arktype';
 import { compareDesc as compareDatesDesc } from 'date-fns';
 import { createSelectSchema } from 'drizzle-arktype';
-import { and, avg, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, avg, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 
 export const runsOfBranch = query(
 	type({
@@ -103,5 +103,32 @@ export const expectedTestrunDuration = query.batch(
 				results.find((r) => r.testId === testId && r.projectId === projectId)?.averageDuration ??
 					'00:00:00'
 			);
+	}
+);
+
+export const testsWithLatestTestrunOnBranch = query(
+	type({ repoId: 'number', branch: 'string' }),
+	async (params) => {
+		const tests = await db.query.tests.findMany({
+			where: eq(tables.tests.repositoryId, params.repoId)
+		});
+
+		const latestTestruns = await Promise.all(
+			tests.map(async (test) =>
+				db
+					.select()
+					.from(tables.testruns)
+					.leftJoin(tables.runs, eq(tables.runs.id, tables.testruns.runId))
+					.where(and(eq(tables.testruns.testId, test.id), eq(tables.runs.branch, params.branch)))
+					.orderBy(desc(tables.testruns.startedAt))
+					.limit(1)
+					.then((rows) => rows[0]?.testruns)
+			)
+		);
+
+		return tests.map((test) => ({
+			...test,
+			testrun: latestTestruns.find((tr) => tr?.testId === test.id)
+		}));
 	}
 );

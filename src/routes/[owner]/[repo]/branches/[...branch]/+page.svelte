@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import TestTree from '$lib/components/TestTree.svelte';
 	import { durationIsLonger, durationToMilliseconds, formatDurationShort } from '$lib/durations.js';
 	import ExternalLink from '$lib/ExternalLink.svelte';
+	import { vscodeURL } from '$lib/filepaths.js';
 	import { commitURL, userProfileURL, workflowJobURL, workflowRunURL } from '$lib/github.js';
 	import StatusIcon from '$lib/StatusIcon.svelte';
-	import { testrunIsOngoing } from '$lib/testruns.js';
+	import { aggregateTestrunOutcomes, testrunIsOngoing } from '$lib/testruns.js';
 	import { clamp, commonPrefixAndSuffixTrimmer, smartStringCompare } from '$lib/utils.js';
 	import {
 		compareDesc as compareDatesDesc,
@@ -15,8 +17,9 @@
 	} from 'date-fns';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { linkToTest } from '../../[...test]/links.js';
-	import { projectsOfRepo, repository } from '../../data.remote.js';
+	import { projectsOfRepo, repository, testsWithLatestTestrun } from '../../data.remote.js';
 	import { expectedTestrunDuration, runsOfBranch } from './data.remote.js';
+	import { holdingKeys } from '../../../../+layout.svelte';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
@@ -28,6 +31,8 @@
 	const completed = $derived(
 		await runsOfBranch({ ...params, repoId: repo.id, status: 'completed' })
 	);
+
+	const currently = $derived(await testsWithLatestTestrun({ ...params, repoId: repo.id }));
 
 	let interval: number | NodeJS.Timeout | undefined = $state();
 	$effect(() => {
@@ -74,6 +79,75 @@
 	<h2>Ongoing</h2>
 
 	{@render list(ongoing, true)}
+</section>
+
+<section>
+	<h2>Currently</h2>
+
+	<TestTree tests={currently}>
+		{#snippet node(parent, tests)}
+			<span class="node-status" data-hide-if-open>
+				<StatusIcon
+					outcome={aggregateTestrunOutcomes(
+						tests.some((t) => t.latestTestruns.some(({ run }) => run.status === 'in_progress')),
+						tests.flatMap((t) => t.latestTestruns)
+					)}
+				/>
+			</span>
+			{parent}
+		{/snippet}
+		{#snippet leaf({ latestTestruns, ...test })}
+			<span
+				class="status"
+				title={latestTestruns
+					.map((tr) =>
+						[projects.get(tr.projectId)?.name ?? 'Unknown project', tr.outcome || 'unknown'].join(
+							': '
+						)
+					)
+					.join(', ')}
+			>
+				{#if holdingKeys.shift}
+					{#each latestTestruns as { run, projectId, outcome, id }, i (id)}
+						{@const project = projects.get(projectId)!}
+						{#if i > 0}&nbsp;{/if}
+						<span class="per-project-status">
+							<StatusIcon inProgress={run.status === 'in_progress'} {outcome} />
+							<span class="subdued">
+								{'{'}<a
+									class="sneaky"
+									href={resolve('/[owner]/[repo]/projects/[project]', {
+										...params,
+										project: project.name
+									})}
+								>
+									{project.abbreviation}
+								</a>{'}'}
+							</span>
+						</span>
+					{/each}
+				{:else}
+					<StatusIcon
+						outcome={aggregateTestrunOutcomes(
+							latestTestruns.some(({ run }) => run.status === 'in_progress'),
+							latestTestruns
+						)}
+					/>
+				{/if}
+			</span>
+			<a
+				href={linkToTest(params, test, params.branch)}
+				oncontextmenu={(e) => {
+					if (!vscodeURL(test)) return;
+					e.preventDefault();
+					e.currentTarget.href = vscodeURL(test);
+					e.currentTarget.click();
+				}}
+			>
+				{test.title}
+			</a>
+		{/snippet}
+	</TestTree>
 </section>
 
 <section>

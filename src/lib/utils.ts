@@ -126,3 +126,19 @@ export function clamp(value: number, min = 0, max = 1): number {
 
 	return clamped;
 }
+
+export function arrayHasPrefix<T>(array: T[], prefix: T[]): boolean {
+	if (prefix.length > array.length) return false;
+
+	for (let i = 0; i < prefix.length; i++) {
+		if (array[i] !== prefix[i]) return false;
+	}
+
+	return true;
+}
+
+export function arrayRemovePrefix<T>(array: T[], prefix: T[]): T[] {
+	if (!arrayHasPrefix(array, prefix)) return array;
+
+	return array.slice(prefix.length);
+}

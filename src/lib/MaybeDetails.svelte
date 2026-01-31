@@ -2,22 +2,22 @@
 	import type { Snippet } from 'svelte';
 
 	interface Props {
-		detailsData: T | undefined | null;
-		details: Snippet<[T]>;
-        open?: boolean;
+		data: T | undefined | null;
+		summary: Snippet<[T]>;
+		open?: boolean;
 		children: Snippet<[]>;
 	}
 
-	const { detailsData, details, children: summary , open = false}: Props = $props();
+	const { data, summary, children, open = false }: Props = $props();
 </script>
 
-{#if detailsData}
+{#if data}
 	<details {open}>
 		<summary>
-			{@render summary()}
+			{@render summary(data)}
 		</summary>
-		{@render details(detailsData)}
+		{@render children()}
 	</details>
 {:else}
-	{@render summary()}
+	{@render children()}
 {/if}

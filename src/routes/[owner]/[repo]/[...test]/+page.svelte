@@ -14,6 +14,7 @@
 	import { formatDurationShort } from '$lib/durations.js';
 	import { FancyAnsi } from 'fancy-ansi';
 	import { projectsOfRepo } from '../data.remote.js';
+	import { vscodeURL } from '$lib/filepaths.js';
 
 	const { params, data } = $props();
 	const { test, repo, testruns: runs } = $derived(data);
@@ -51,16 +52,6 @@
 		if (!browser) return;
 		repositoryUserRoot = localStorage.getItem('repositoryUserRoot') || '';
 	});
-
-	function vscodeURL({
-		filePath,
-		locationInFile
-	}: {
-		filePath: string;
-		locationInFile: [number, number];
-	}) {
-		return `vscode://file/${repositoryUserRoot}/${filePath}:${locationInFile.join(':')}`;
-	}
 </script>
 
 <svelte:window
@@ -176,7 +167,9 @@
 
 										<ul class="errors">
 											{#each errors as { id, message, stack, ...location } (id)}
-												{@const locationInStack = stack?.includes(`${run.baseDirectory}/${location.filePath}:${location.locationInFile?.join(':')}`)}
+												{@const locationInStack = stack?.includes(
+													`${run.baseDirectory}/${location.filePath}:${location.locationInFile?.join(':')}`
+												)}
 
 												<li class="error">
 													{#if location.filePath && location.locationInFile && !locationInStack}

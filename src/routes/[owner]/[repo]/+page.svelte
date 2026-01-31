@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import TestTree from '$lib/components/TestTree.svelte';
 	import { parseDuration, roundDuration } from '$lib/durations.js';
-	import { formatDistanceToNow, formatDuration } from 'date-fns';
+	import StatusIcon from '$lib/StatusIcon.svelte';
+	import { aggregateTestrunOutcomes } from '$lib/testruns.js';
+	import { formatDuration } from 'date-fns';
 	import { linkToTest } from './[...test]/links.js';
 	import {
 		branchesOfRepo,
@@ -9,17 +12,18 @@
 		longTests,
 		projectsOfRepo,
 		repository,
-		testsOfRepoByFilename
+		testsWithLatestTestrun
 	} from './data.remote.js';
+	import { vscodeURL } from '$lib/filepaths.js';
 
 	const { params } = $props();
 
 	const { id } = $derived(await repository(params));
 	const projects = $derived(await projectsOfRepo(id));
-	const testsByFile = $derived(await testsOfRepoByFilename(id));
 	const longs = $derived(await longTests(id));
 	const flakies = $derived(await flakyTests(id));
 	const branches = $derived(await branchesOfRepo(id));
+	const tests = $derived(await testsWithLatestTestrun({ repoId: id, branch: 'main' }));
 </script>
 
 <h1>{params.owner}/{params.repo}</h1>
@@ -114,39 +118,49 @@
 <section>
 	<h2>Tests</h2>
 
-	<ul>
-		{#each testsByFile as [filepath, tests] (filepath)}
-			<li>
-				<details>
-					<summary>
-						{filepath} ({tests.length} tests)
-					</summary>
-					<ul>
-						{#each tests as test (test.id)}
-							{@const ongoing = test.testruns.find(
-								(tr) =>
-									tr.run.status === 'in_progress' &&
-									tr.duration === null &&
-									tr.outcome !== 'skipped'
-							)}
-							<li>
-								[{test.stepsCount}]
-
-								{#if ongoing}
-									<code title={formatDistanceToNow(ongoing.startedAt, { addSuffix: true })}>
-										[ONGOING]
-									</code>
-								{/if}
-								<a href={linkToTest(params, test)}>
-									{[...test.path, test.title].join(' › ')}
-								</a>
-							</li>
-						{/each}
-					</ul>
-				</details>
-			</li>
-		{/each}
-	</ul>
+	<TestTree {tests}>
+		{#snippet node(parent, tests)}
+			<span class="node-status" data-hide-if-open>
+				<StatusIcon
+					outcome={aggregateTestrunOutcomes(
+						tests.some((t) => t.latestTestruns.some(({ run }) => run.status === 'in_progress')),
+						tests.flatMap((t) => t.latestTestruns)
+					)}
+				/>
+			</span>
+			{parent}
+		{/snippet}
+		{#snippet leaf({ latestTestruns, ...test })}
+			<span
+				class="status"
+				title={latestTestruns
+					.map((tr) =>
+						[projects.get(tr.projectId)?.name ?? 'Unknown project', tr.outcome || 'unknown'].join(
+							': '
+						)
+					)
+					.join(', ')}
+			>
+				<StatusIcon
+					outcome={aggregateTestrunOutcomes(
+						latestTestruns.some(({ run }) => run.status === 'in_progress'),
+						latestTestruns
+					)}
+				/>
+			</span>
+			<a
+				href={linkToTest(params, test, 'main')}
+				oncontextmenu={(e) => {
+					if (!vscodeURL(test)) return;
+					e.preventDefault();
+					e.currentTarget.href = vscodeURL(test);
+					e.currentTarget.click();
+				}}
+			>
+				{test.title}
+			</a>
+		{/snippet}
+	</TestTree>
 </section>
 
 <style>
@@ -154,5 +168,9 @@
 		display: grid;
 		grid-template-columns: 15ch 1fr 1fr;
 		gap: 0 0.75em;
+	}
+
+	.node-status {
+		margin-left: 0.5em;
 	}
 </style>
