@@ -4,6 +4,7 @@ import * as tables from '$lib/server/db/schema';
 import { uniqueBy } from '$lib/utils';
 import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
+import { compareDesc as compareDatesDesc } from 'date-fns';
 import { createSelectSchema } from 'drizzle-arktype';
 import { and, desc, eq, isNotNull } from 'drizzle-orm';
 
@@ -26,11 +27,11 @@ export const runsOfBranch = query(
 					// TODO find a way to keep runs that are part of the same workflow run but have statuses
 					// other than the requested one, as long as at least one run matches the status.
 					// eq(tables.runs.status, params.status),
-					// Maybe we should group by in SQL land, 
+					// Maybe we should group by in SQL land,
 					// and aggregate needed data for steps with array_agg ?
 					isNotNull(tables.runs.id),
 					isNotNull(tables.testruns.id),
-					isNotNull(tables.tests.id),
+					isNotNull(tables.tests.id)
 				)
 			);
 
@@ -44,7 +45,7 @@ export const runsOfBranch = query(
 						.filter((r) => r.runs.id === row.runs.id)
 						.map((r) => ({
 							...r.testruns!,
-							test: r.tests!,
+							test: r.tests!
 						})),
 					(tr) => tr.id
 				)
@@ -60,7 +61,12 @@ export const runsOfBranch = query(
 			}
 		}
 
-		return byWorkflow;
+		return [...byWorkflow.entries()].sort(([, a], [, b]) => {
+			const startedAt = (i: typeof a | typeof b) =>
+				new Date(Math.min(...i.map((r) => r.startedAt.getTime())));
+
+			return compareDatesDesc(startedAt(a), startedAt(b));
+		});
 	}
 );
 
