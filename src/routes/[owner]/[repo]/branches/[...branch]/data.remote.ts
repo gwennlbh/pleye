@@ -19,7 +19,6 @@ export const runsOfBranch = query(
 			.from(tables.runs)
 			.leftJoin(tables.testruns, eq(tables.testruns.runId, tables.runs.id))
 			.leftJoin(tables.tests, eq(tables.tests.id, tables.testruns.testId))
-			.leftJoin(tables.steps, eq(tables.steps.testrunId, tables.testruns.id))
 			.where(
 				and(
 					eq(tables.runs.repositoryId, params.repoId),
@@ -32,7 +31,6 @@ export const runsOfBranch = query(
 					isNotNull(tables.runs.id),
 					isNotNull(tables.testruns.id),
 					isNotNull(tables.tests.id),
-					isNotNull(tables.steps.id)
 				)
 			);
 
@@ -47,7 +45,6 @@ export const runsOfBranch = query(
 						.map((r) => ({
 							...r.testruns!,
 							test: r.tests!,
-							steps: rows.filter((s) => s.testruns?.id === r.testruns!.id).map((s) => s.steps!)
 						})),
 					(tr) => tr.id
 				)

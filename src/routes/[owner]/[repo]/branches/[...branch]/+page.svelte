@@ -130,7 +130,6 @@
 							<li class="testrun" class:has-progress-bar={run.status === 'in_progress'}>
 								{#if run.status === 'in_progress'}
 									<span class="icon">·</span>
-									{@const currentStep = currentTestrun?.steps.at(-1)}
 									<span class="failure">
 										{#if failures.length > 0}{failures.length}✘{/if}
 									</span>
@@ -145,7 +144,7 @@
 									</span>
 									<progress max={run.testrunsCount} value={dones.length}></progress>
 									{#if currentTestrun}
-										{@const max = currentTestrun.test.stepsCount}
+										<!-- {@const max = currentTestrun.test.stepsCount}
 										{@const value = (currentStep?.index ?? 0) + 1}
 
 										<span class="step-progress subdued">
@@ -154,7 +153,7 @@
 											{:else}
 												0%
 											{/if}
-										</span>
+										</span> -->
 										<span class="rest">
 											<a
 												class="sneaky"
@@ -162,11 +161,11 @@
 											>
 												{currentTestrun.test.title}
 											</a>
-											<span class="step subdued">
+											<!-- <span class="step subdued">
 												{#if currentStep}
 													{[...currentStep.path, currentStep.title].join(' › ')}
 												{/if}
-											</span>
+											</span> -->
 										</span>
 									{:else}
 										<span class="step-progress"></span>
@@ -251,9 +250,9 @@
 		}
 	}
 
-	li:not(:hover):not(:focus) .step {
-		display: none;
-	}
+	/*li:not(:hover):not(:focus) .step {
+		display: none; 
+	} */
 
 	details:open {
 		margin-bottom: 1.5em;
