@@ -2,11 +2,10 @@ import { query } from '$app/server';
 import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
 import { parseDuration, uniqueBy } from '$lib/utils';
-import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { compareDesc as compareDatesDesc } from 'date-fns';
 import { createSelectSchema } from 'drizzle-arktype';
-import { and, avg, desc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, avg, eq, inArray, isNotNull } from 'drizzle-orm';
 
 export const runsOfBranch = query(
 	type({
@@ -27,8 +26,7 @@ export const runsOfBranch = query(
 					// TODO find a way to keep runs that are part of the same workflow run but have statuses
 					// other than the requested one, as long as at least one run matches the status.
 					// eq(tables.runs.status, params.status),
-					// Maybe we should group by in SQL land,
-					// and aggregate needed data for steps with array_agg ?
+					// Maybe we should group by in SQL land
 					isNotNull(tables.runs.id),
 					isNotNull(tables.testruns.id),
 					isNotNull(tables.tests.id)

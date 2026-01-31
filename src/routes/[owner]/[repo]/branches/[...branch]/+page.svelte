@@ -17,6 +17,7 @@
 	import { projectsOfRepo, repository } from '../../data.remote.js';
 	import { expectedTestrunDuration, runsOfBranch } from './data.remote.js';
 	import {
+		clamp,
 		commonPrefixAndSuffixTrimmer,
 		durationIsShorter,
 		durationToMilliseconds,
@@ -177,14 +178,13 @@
 									</span>
 									<progress max={run.testrunsCount} value={dones.length}></progress>
 									{#if currentTestrun}
-										{@const title = currentTestrun.test.title}
 										{@const project = projects.get(currentTestrun.projectId)!}
 										{@const duration = intervalToDuration({
 											start: currentTestrun.startedAt,
 											end: now
 										})}
 
-										{#await expectedTestrunDuration({...currentTestrun, branch: params.branch})}
+										{#await expectedTestrunDuration({ ...currentTestrun, branch: params.branch })}
 											<span class="subdued">
 												{formatDurationShort(duration)}
 											</span>
@@ -198,7 +198,7 @@
 														expectedDuration
 													)}"
 												>
-													{((currently / expected) * 100).toFixed(0).padStart(2, ' ')}%
+													{(clamp(currently / expected) * 100).toFixed(0).padStart(2, ' ')}%
 												</span>
 											{:else}
 												<span

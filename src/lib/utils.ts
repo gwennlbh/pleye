@@ -171,3 +171,16 @@ export function durationToMilliseconds({
 export function durationIsShorter(a: DateFns.Duration, b: DateFns.Duration): boolean {
 	return durationToMilliseconds(a) < durationToMilliseconds(b);
 }
+
+/**
+ * Clamp a number between min and max.
+ * Also:
+ * - Returns min if value is NaN
+ */
+export function clamp(value: number, min = 0, max = 1): number {
+	const clamped = Math.min(Math.max(value, min), max);
+
+	if (Number.isNaN(clamped)) return min;
+
+	return clamped;
+}
