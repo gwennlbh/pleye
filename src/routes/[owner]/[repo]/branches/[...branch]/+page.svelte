@@ -33,7 +33,7 @@
 			() => {
 				void runsOfBranch({ ...params, repoId: repo.id, status: 'in_progress' }).refresh();
 			},
-			Number(page.url.searchParams.get('refresh') ?? 10) * 1000
+			Number(page.url.searchParams.get('refresh') ?? 3) * 1000
 		);
 
 		return () => clearInterval(interval);
