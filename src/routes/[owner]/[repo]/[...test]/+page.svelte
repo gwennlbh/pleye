@@ -170,12 +170,13 @@
 
 	.error {
 		padding: 1.5em;
-		background: color-mix(in srgb, currentColor 30%, transparent);
+		background: color-mix(in srgb, currentColor 5%, transparent);
 		border-radius: 0.5em;
 		font-size: 0.9em;
 		max-width: 800px;
 		overflow-x: auto;
 		text-wrap: nowrap;
+		margin-bottom: 0.5em;
 	}
 
 	.testrun-header {

@@ -7,6 +7,8 @@ body {
 	display: flex;
 	flex-direction: column;
 	gap: 3em;
+
+	color-scheme: light dark;
 }
 
 code,
@@ -43,15 +45,15 @@ li.empty {
 }
 
 .success {
-	color: greenyellow;
+	color: light-dark(rgb(33, 184, 33), greenyellow);
 }
 
 .failure {
-	color: rgb(143, 11, 11);
+	color: light-dark(red, rgb(143, 11, 11));
 }
 
 .warning {
-	color: orange;
+	color: light-dark(rgb(216, 106, 4), orange);
 }
 
 progress {
@@ -60,11 +62,11 @@ progress {
 	background-color: transparent;
 	height: 5px;
 
-	&::-webkit-progress-value, &::-moz-progress-bar {
+	&::-webkit-progress-value,
+	&::-moz-progress-bar {
 		background-color: currentColor;
 	}
 }
-
 
 section.side-by-side {
 	display: flex;
