@@ -59,7 +59,7 @@ export function formatDurationShort(duration: string | DateFns.Duration): string
 	if (days) return `${days}d`;
 	if (hours) return `${hours}h`;
 	if (minutes) return `${minutes}m`;
-	if (seconds > 1) return `${Math.round(seconds)}s`;
+	if (Math.round(seconds) >= 1) return `${Math.round(seconds)}s`;
 	return `${Math.round(seconds * 1000)}ms`;
 }
 
