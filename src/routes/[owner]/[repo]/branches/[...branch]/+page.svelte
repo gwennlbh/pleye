@@ -256,7 +256,7 @@
 
 	summary {
 		display: grid;
-		grid-template-columns: max-content 12ch 7ch 800px 1fr;
+		grid-template-columns: max-content 16ch 7ch 800px 1fr;
 		gap: 0 0.75em;
 		align-items: center;
 		width: 100%;
