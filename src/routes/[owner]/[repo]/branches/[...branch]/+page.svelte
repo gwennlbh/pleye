@@ -184,7 +184,7 @@
 											end: now
 										})}
 
-										{#await expectedTestrunDuration(currentTestrun)}
+										{#await expectedTestrunDuration({...currentTestrun, branch: params.branch})}
 											<span class="subdued">
 												{formatDurationShort(duration)}
 											</span>
@@ -194,7 +194,7 @@
 												{@const expected = durationToMilliseconds(expectedDuration)}
 												<span
 													class="subdued"
-													title="Based on main's passing runs, {title} on {project.name} runs in {formatDuration(
+													title="On {project.name}, it usually runs in {formatDuration(
 														expectedDuration
 													)}"
 												>

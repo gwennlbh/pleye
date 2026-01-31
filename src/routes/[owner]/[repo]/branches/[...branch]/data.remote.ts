@@ -71,9 +71,9 @@ export const runsOfBranch = query(
 );
 
 export const expectedTestrunDuration = query.batch(
-	type({ testId: 'number', projectId: 'number' }),
+	type({ testId: 'number', projectId: 'number', branch: 'string' }),
 	async (testruns) => {
-		// Get average of all testrun durations for the given testrun's test and project, considering only passing testruns that have their run on the main branch
+		// Get average of all testrun durations for the given testrun's test and project, considering only passing testruns that have their run on the main branch or on this branch
 
 		const results = await db
 			.select({
@@ -86,7 +86,7 @@ export const expectedTestrunDuration = query.batch(
 			.leftJoin(tables.tests, eq(tables.tests.id, tables.testruns.testId))
 			.where(
 				and(
-					eq(tables.runs.branch, 'main'),
+					inArray(tables.runs.branch, ['main', ...testruns.map((tr) => tr.branch)]),
 					isNotNull(tables.testruns.duration),
 					eq(tables.testruns.outcome, 'expected'),
 					inArray(
@@ -100,8 +100,6 @@ export const expectedTestrunDuration = query.batch(
 				)
 			)
 			.groupBy(({ testId, projectId }) => [testId, projectId]);
-
-		console.log(results);
 
 		return ({ testId, projectId }) =>
 			parseDuration(
