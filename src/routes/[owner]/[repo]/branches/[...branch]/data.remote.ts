@@ -1,7 +1,7 @@
 import { query } from '$app/server';
 import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
-import { parseDuration, uniqueBy } from '$lib/utils';
+import { parseDuration, uniqueBy, uniqueById } from '$lib/utils';
 import { type } from 'arktype';
 import { compareDesc as compareDatesDesc } from 'date-fns';
 import { createSelectSchema } from 'drizzle-arktype';
@@ -35,20 +35,18 @@ export const runsOfBranch = query(
 
 		const rows = await query;
 
-		const richRuns = uniqueBy(
+		const richRuns = uniqueById(
 			rows.map((row) => ({
 				...row.runs,
-				testruns: uniqueBy(
+				testruns: uniqueById(
 					rows
 						.filter((r) => r.runs.id === row.runs.id)
 						.map((r) => ({
 							...r.testruns!,
 							test: r.tests!
-						})),
-					(tr) => tr.id
+						}))
 				)
-			})),
-			(run) => run.id
+			}))
 		);
 
 		const byWorkflow = Map.groupBy(richRuns, (run) => run.githubRunId);

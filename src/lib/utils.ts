@@ -88,6 +88,13 @@ export function uniqueBy<T>(array: T[], fn: (item: T) => string | number): T[] {
 }
 
 /**
+ * @see {@link uniqueBy}
+ */
+export function uniqueById<T extends { id: number | string }>(array: T[]): T[] {
+	return uniqueBy(array, (item) => item.id);
+}
+
+/**
  *
  * @param strings
  * @param fillString left-pad strings that are smaller than the biggest trimmed string with this

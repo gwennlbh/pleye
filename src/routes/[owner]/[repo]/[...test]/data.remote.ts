@@ -6,6 +6,7 @@ import * as tables from '$lib/server/db/schema';
 import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
+import { uniqueBy, uniqueById } from '$lib/utils';
 
 export const testInRepo = query(type({ repoId: 'number', test: 'string' }), async (params) => {
 	const { filePath, path, title } = parseTestPathParam(params.test);
@@ -53,27 +54,23 @@ export const runsOfTest = query(
 			)
 			.orderBy(desc(tables.testruns.startedAt));
 
-		const testruns = Object.fromEntries(
-			rows.map((row) => [
-				row.testruns.id,
-				{
-					...row.testruns,
-					run: row.runs!,
-					results: rows
+		const testruns = uniqueById(
+			rows.map((row) => ({
+				...row.testruns,
+				run: row.runs!,
+				results: uniqueById(
+					rows
 						.filter((r) => r.testruns.id === row.testruns.id)
 						.map((r) => r.results)
-						.filter((res) => res !== null),
-					errors: rows
-						.filter((r) => r.testruns.id === row.testruns.id)
-						.map((r) => r.errors)
-						.filter((e) => e !== null)
-				}
-			])
-		);
+						.filter((res) => res !== null)
+						.map((result) => ({
+							...result,
+							errors: rows.filter((r) => r.errors?.resultId === result.id).map((r) => r.errors!)
+						}))
+				)
+			}))
+		).sort((a, b) => compareDatesDesc(a.startedAt, b.startedAt));
 
-		return Map.groupBy(
-			Object.values(testruns).sort((a, b) => compareDatesDesc(a.startedAt, b.startedAt)),
-			(tr) => tr.run.pullRequestNumber || tr.run.branch
-		);
+		return Map.groupBy(testruns, (tr) => tr.run.pullRequestNumber || tr.run.branch);
 	}
 );
