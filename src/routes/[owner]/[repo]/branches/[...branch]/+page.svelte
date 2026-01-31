@@ -186,7 +186,7 @@
 												{formatDurationShort(duration)}
 											</span>
 										{:then expectedDuration}
-											{#if durationIsShorter(duration, expectedDuration)}
+											{#if durationIsShorter(duration, expectedDuration, { seconds: 2 })}
 												{@const currently = durationToMilliseconds(duration)}
 												{@const expected = durationToMilliseconds(expectedDuration)}
 												<span
