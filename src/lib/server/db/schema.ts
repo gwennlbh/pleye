@@ -180,7 +180,7 @@ export const testruns = pgTable(
 	(t) => [
 		index('testruns_by_run').on(t.runId),
 		index('testruns_by_test').on(t.testId),
-		uniqueIndex('testruns_run_and_test').on(t.runId, t.testId)
+		uniqueIndex('testruns_test_run_and_retries').on(t.testId, t.runId, t.retries)
 	]
 );
 
