@@ -20,7 +20,7 @@ import type {
 	TestStep as PlaywrightTestStep
 } from '@playwright/test/reporter';
 import { sql } from 'drizzle-orm';
-import { stringArray } from './types';
+import { stringArray, url } from './types';
 
 export const apiKeys = pgTable(
 	'api_keys',
@@ -195,6 +195,7 @@ export const results = pgTable(
 		annotations: json('annotations').$type<PlaywrightTestResult['annotations']>().notNull(),
 		// TODO: support attachments?
 		duration: interval('duration', { fields: 'hour to second' }).notNull(),
+		traceViewerUrl: url('trace_viewer_url'),
 		retry: integer('retry').notNull(),
 		startedAt: timestamp('started_at').notNull(),
 		status: text('status', {

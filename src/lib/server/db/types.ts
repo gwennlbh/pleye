@@ -23,3 +23,20 @@ export const stringArray = customType<{ data: string[] }>({
 		return JSON.stringify(value);
 	}
 });
+
+export const url = customType<{ data: URL }>({
+	dataType() {
+		return 'text';
+	},
+	fromDriver(value) {
+		if (typeof value !== 'string') {
+			console.error(value);
+			throw new Error(`Invalid data type for URL: ${typeof value} ${value}`);
+		}
+
+		return new URL(value);
+	},
+	toDriver(value) {
+		return value.toString();
+	}
+});
