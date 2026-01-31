@@ -15,7 +15,11 @@
 	import { linkToTest } from '../../[...test]/links.js';
 	import { repository } from '../../data.remote.js';
 	import { runsOfBranch } from './data.remote.js';
-	import { commonPrefixAndSuffixTrimmer, formatDurationShort } from '$lib/utils.js';
+	import {
+		commonPrefixAndSuffixTrimmer,
+		formatDurationShort,
+		smartStringCompare
+	} from '$lib/utils.js';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
@@ -86,6 +90,9 @@
 			{@const { commitSha, commitTitle, commitAuthorUsername, commitAuthorName, result } = runs[0]}
 			{@const jobNameTrimmer = commonPrefixAndSuffixTrimmer(runs.map((r) => r.githubJobName))}
 			{@const startedAt = new Date(Math.min(...runs.map((r) => r.startedAt.getTime())))}
+			{@const sortedRuns = runs.toSorted((a, b) =>
+				smartStringCompare(jobNameTrimmer(a.githubJobName), jobNameTrimmer(b.githubJobName))
+			)}
 			<li>
 				<details
 					open={openDetails || opened.has(runId)}
@@ -126,7 +133,7 @@
 					</summary>
 
 					<ul>
-						{#each runs.toSorted( (a, b) => compareDatesAsc(a.startedAt, b.startedAt) ) as run (run.id)}
+						{#each sortedRuns as run (run.id)}
 							{@const currentTestrun =
 								run.status === 'in_progress'
 									? run.testruns
@@ -141,12 +148,18 @@
 							{@const flakies = dones.filter((tr) => tr.outcome === 'flaky')}
 							{@const expecteds = dones.filter((tr) => tr.outcome === 'expected')}
 
+							{#snippet job()}
+								<span class="job-name">
+									<ExternalLink sneaky url={workflowJobURL(repo, run)}>
+										{jobNameTrimmer(run.githubJobName)}
+									</ExternalLink>
+								</span>
+							{/snippet}
+
 							<li class="testrun" class:has-progress-bar={run.status === 'in_progress'}>
-								<ExternalLink sneaky url={workflowJobURL(repo, run)}>
-									{jobNameTrimmer(run.githubJobName)}
-								</ExternalLink>
 								{#if run.status === 'in_progress'}
 									<span class="icon">·</span>
+									{@render job()}
 									<span class="failure">
 										{#if failures.length > 0}{failures.length}✘{/if}
 									</span>
@@ -197,14 +210,18 @@
 										<span class="subdued">waiting...</span>
 									{/if}
 								{:else if run.result === 'interrupted'}
-									<span class="subdued">— interrupted</span>
+									<StatusIcon outcome={null} />
+									{@render job()}
+									<span class="subdued">interrupted</span>
 								{:else if run.result === 'passed'}
 									{#if flakies.length === 0}
 										<StatusIcon outcome="expected" />
+										{@render job()}
 										<span class="count">{successes.length}</span>
 										<span class="thing">passed</span>
 									{:else}
 										<StatusIcon outcome="flaky" />
+										{@render job()}
 										<span class="count">
 											<span class="warning">{flakies.length}</span>/{dones.length}
 										</span>
@@ -221,6 +238,7 @@
 									{/if}
 								{:else if run.result === 'failed'}
 									<StatusIcon outcome="unexpected" />
+									{@render job()}
 									<span class="count"
 										><span class="failure">{failures.length}</span>/{dones.length}
 									</span>
@@ -264,21 +282,22 @@
 
 	ul li {
 		display: grid;
-		grid-template-columns: max-content 1ch 4ch 7ch 1fr;
+		grid-template-columns: max-content 3ch 4ch 7ch 1fr;
 		gap: 0 0.75em;
 		overflow-x: hidden;
 		align-items: center;
 		width: 100%;
 
 		&.has-progress-bar {
-			grid-template-columns: max-content 1ch repeat(3, 3ch) 5ch 100px 3ch 1fr 1fr;
+			grid-template-columns: max-content 3ch repeat(3, 3ch) 5ch 100px 3ch 1fr 1fr;
 		}
 
 		&:not(.has-progress-bar) + .has-progress-bar {
 			margin-top: 0.5em;
 		}
 
-		.count {
+		.count,
+		.job-name {
 			text-align: right;
 		}
 	}

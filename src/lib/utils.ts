@@ -117,3 +117,21 @@ export function commonPrefixAndSuffixTrimmer(strings: string[]): (s: string) => 
 
 	return (s) => s.slice(start, s.length - end);
 }
+
+export function smartStringCompare(a: string, b: string): number {
+	a = a.trim();
+	b = b.trim();
+
+	const aNum = parseFloat(a);
+	const bNum = parseFloat(b);
+
+	const aIsNum = !isNaN(aNum);
+	const bIsNum = !isNaN(bNum);
+
+
+	if (aIsNum && bIsNum) {
+		return aNum - bNum;
+	}
+
+	return a.localeCompare(b);
+}
