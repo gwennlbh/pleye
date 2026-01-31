@@ -5,7 +5,7 @@
 	import { commitURL, userProfileURL, workflowRunURL } from '$lib/github.js';
 	import StatusIcon from '$lib/StatusIcon.svelte';
 	import { testrunIsOngoing } from '$lib/testruns.js';
-	import { formatDistanceToNowStrict } from 'date-fns';
+	import { compareDesc as compareDatesDesc, formatDistanceToNowStrict } from 'date-fns';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { linkToTest } from '../../[...test]/links.js';
 	import { repository } from '../../data.remote.js';
@@ -113,7 +113,7 @@
 								run.status === 'in_progress'
 									? run.testruns
 											.filter(testrunIsOngoing)
-											.toSorted((a, b) => a.startedAt.getTime() - b.startedAt.getTime())
+											.toSorted((a, b) => compareDatesDesc(a.startedAt, b.startedAt))
 											.at(0)
 									: undefined}
 
