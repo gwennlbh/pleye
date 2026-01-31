@@ -56,7 +56,6 @@ export function formatDurationShort(duration: string | DateFns.Duration): string
 		seconds = 0
 	} = typeof duration === 'string' ? parseDuration(duration) : duration;
 
-
 	if (days) return `${days}d`;
 	if (hours) return `${hours}h`;
 	if (minutes) return `${minutes}m`;
@@ -67,10 +66,10 @@ export function formatDurationShort(duration: string | DateFns.Duration): string
 
 /**
  * Removes duplicates from an array based on a key function
- * Preserves order 
- * @param array 
- * @param fn 
- * @returns 
+ * Preserves order
+ * @param array
+ * @param fn
+ * @returns
  */
 export function uniqueBy<T>(array: T[], fn: (item: T) => string | number): T[] {
 	const seen = new Set<string | number>();
@@ -85,4 +84,36 @@ export function uniqueBy<T>(array: T[], fn: (item: T) => string | number): T[] {
 	}
 
 	return result;
+}
+
+export function commonPrefixAndSuffixTrimmer(strings: string[]): (s: string) => string {
+	if (strings.length === 0) return (s) => s;
+
+	let start = 0;
+	let end = 0;
+	const first = strings[0];
+	const last = strings[strings.length - 1];
+	const minLength = Math.min(...strings.map((s) => s.length));
+
+	// Find common prefix
+	while (start < minLength) {
+		const char = first[start];
+		if (strings.every((s) => s[start] === char)) {
+			start++;
+		} else {
+			break;
+		}
+	}
+
+	// Find common suffix
+	while (end < minLength - start) {
+		const char = last[last.length - 1 - end];
+		if (strings.every((s) => s[s.length - 1 - end] === char)) {
+			end++;
+		} else {
+			break;
+		}
+	}
+
+	return (s) => s.slice(start, s.length - end);
 }

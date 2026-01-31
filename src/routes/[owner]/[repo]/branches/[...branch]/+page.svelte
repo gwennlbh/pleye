@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import ExternalLink from '$lib/ExternalLink.svelte';
-	import { commitURL, userProfileURL, workflowRunURL } from '$lib/github.js';
+	import { commitURL, userProfileURL, workflowJobURL, workflowRunURL } from '$lib/github.js';
 	import StatusIcon from '$lib/StatusIcon.svelte';
 	import { testrunIsOngoing } from '$lib/testruns.js';
 	import {
@@ -15,7 +15,7 @@
 	import { linkToTest } from '../../[...test]/links.js';
 	import { repository } from '../../data.remote.js';
 	import { runsOfBranch } from './data.remote.js';
-	import { formatDurationShort } from '$lib/utils.js';
+	import { commonPrefixAndSuffixTrimmer, formatDurationShort } from '$lib/utils.js';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
@@ -84,6 +84,7 @@
 	<ul>
 		{#each groupedRuns as [runId, runs] (runId)}
 			{@const { commitSha, commitTitle, commitAuthorUsername, commitAuthorName, result } = runs[0]}
+			{@const jobNameTrimmer = commonPrefixAndSuffixTrimmer(runs.map((r) => r.githubJobName))}
 			{@const startedAt = new Date(Math.min(...runs.map((r) => r.startedAt.getTime())))}
 			<li>
 				<details
@@ -112,14 +113,16 @@
 							>{commitSha.slice(0, 7)}</ExternalLink
 						>
 						{commitTitle}
-						by
-						{#if commitAuthorUsername}
-							<ExternalLink sneaky url={userProfileURL(commitAuthorUsername)}>
+						<span>
+							by
+							{#if commitAuthorUsername}
+								<ExternalLink sneaky url={userProfileURL(commitAuthorUsername)}>
+									{commitAuthorName}
+								</ExternalLink>
+							{:else}
 								{commitAuthorName}
-							</ExternalLink>
-						{:else}
-							{commitAuthorName}
-						{/if}
+							{/if}
+						</span>
 					</summary>
 
 					<ul>
@@ -139,6 +142,9 @@
 							{@const expecteds = dones.filter((tr) => tr.outcome === 'expected')}
 
 							<li class="testrun" class:has-progress-bar={run.status === 'in_progress'}>
+								<ExternalLink sneaky url={workflowJobURL(repo, run)}>
+									{jobNameTrimmer(run.githubJobName)}
+								</ExternalLink>
 								{#if run.status === 'in_progress'}
 									<span class="icon">·</span>
 									<span class="failure">
@@ -248,16 +254,24 @@
 		text-wrap: nowrap;
 	}
 
+	summary {
+		display: grid;
+		grid-template-columns: max-content 12ch 7ch 800px 1fr;
+		gap: 0 0.75em;
+		align-items: center;
+		width: 100%;
+	}
+
 	ul li {
 		display: grid;
-		grid-template-columns: max-content 4ch 7ch 1fr;
+		grid-template-columns: max-content 1ch 4ch 7ch 1fr;
 		gap: 0 0.75em;
 		overflow-x: hidden;
 		align-items: center;
 		width: 100%;
 
 		&.has-progress-bar {
-			grid-template-columns: max-content repeat(3, 3ch) 5ch 100px 3ch 1fr 1fr;
+			grid-template-columns: max-content 1ch repeat(3, 3ch) 5ch 100px 3ch 1fr 1fr;
 		}
 
 		&:not(.has-progress-bar) + .has-progress-bar {
