@@ -98,7 +98,8 @@ export async function POST({ params, request }) {
 			.update(testruns)
 			.set({
 				...data.testrun,
-				outcome: null
+				outcome: null,
+				duration: null
 			})
 			.where(eq(testruns.id, testrun.id))
 			.returning();
