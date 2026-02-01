@@ -112,6 +112,7 @@ export const runs = pgTable(
 		commitAuthorName: text('commit_author_name').notNull().default(''),
 		commitAuthorUsername: text('commit_author_username'),
 		commitAuthorEmail: text('commit_author_email').notNull().default(''),
+		committedAt: timestamp('committed_at'),
 		branch: text('branch').notNull(),
 		pullRequestNumber: integer('pull_request_number'),
 		pullRequestTitle: text('pull_request_title'),
