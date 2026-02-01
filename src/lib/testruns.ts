@@ -19,8 +19,8 @@ export function aggregateTestrunOutcomes(
 
 	if (inProgress && outcomes.has(null)) return null;
 	if (outcomes.has('unexpected')) return 'unexpected';
+	if (outcomes.has(null)) return null;
 	if (outcomes.has('flaky')) return 'flaky';
 	if (outcomes.has('expected')) return 'expected';
-	if (outcomes.has(null)) return null;
 	return 'skipped';
 }
