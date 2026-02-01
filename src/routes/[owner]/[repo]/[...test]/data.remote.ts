@@ -44,7 +44,7 @@ export const runsOfTest = query(
 					eq(tables.testruns.testId, id),
 					branches ? inArray(tables.runs.branch, branches) : undefined,
 					// Don't request runs from closed PRs if we know which PRs are still open
-					openPRs
+					openPRs.length > 0
 						? or(
 								isNull(tables.runs.pullRequestNumber),
 								inArray(tables.runs.pullRequestNumber, openPRs)

@@ -137,9 +137,11 @@ export const branchesOfRepo = query(type('number'), async (repoId) => {
 		.from(tables.runs)
 		.where(eq(tables.runs.repositoryId, repoId));
 
-	const github: Array<{ state: 'open' | 'closed' | 'merged'; number: number }> = await fetch(
+	let github: Array<{ state: 'open' | 'closed' | 'merged'; number: number }> = await fetch(
 		`https://api.github.com/repositories/${repoId}/pulls`
 	).then((res) => res.json());
+
+	if (!Array.isArray(github)) github = [];
 
 	return branches
 		.map((branch) => ({

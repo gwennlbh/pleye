@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { formatDurationShort } from '$lib/durations.js';
 	import ExternalLink from '$lib/ExternalLink.svelte';
+	import { vscodeURL } from '$lib/filepaths.js';
 	import {
 		branchURL,
 		commitURL,
@@ -11,10 +12,8 @@
 		workflowJobURL
 	} from '$lib/github.js';
 	import StatusIcon from '$lib/StatusIcon.svelte';
-	import { formatDurationShort } from '$lib/durations.js';
 	import { FancyAnsi } from 'fancy-ansi';
 	import { projectsOfRepo } from '../data.remote.js';
-	import { vscodeURL } from '$lib/filepaths.js';
 
 	const { params, data } = $props();
 	const { test, repo, testruns: runs } = $derived(data);

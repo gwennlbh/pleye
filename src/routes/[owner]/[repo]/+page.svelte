@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import TestTree from '$lib/components/TestTree.svelte';
-	import { parseDuration, roundDuration } from '$lib/durations.js';
+	import {
+		durationToMilliseconds,
+		formatDurationShort,
+		parseDuration,
+		roundDuration
+	} from '$lib/durations.js';
 	import StatusIcon from '$lib/StatusIcon.svelte';
 	import { aggregateTestrunOutcomes } from '$lib/testruns.js';
 	import { formatDuration } from 'date-fns';
@@ -17,6 +22,9 @@
 	import { vscodeURL } from '$lib/filepaths.js';
 	import ExternalLink from '$lib/ExternalLink.svelte';
 	import { pullRequestURL } from '$lib/github.js';
+	import { gradientedColor } from '$lib/color.js';
+	import { goto } from '$app/navigation';
+	import { basename } from '$lib/utils.js';
 
 	const { params } = $props();
 
@@ -26,6 +34,17 @@
 	const flakies = $derived(await flakyTests(repo.id));
 	const branches = $derived(await branchesOfRepo(repo.id));
 	const tests = $derived(await testsWithLatestTestrun({ repoId: repo.id, branch: 'main' }));
+
+	const lowerIsBetterColor = $derived((values: number[], value: number) =>
+		gradientedColor(
+			Math.min(...values),
+			Math.max(...values),
+			value,
+			'success',
+			'warning',
+			'failure'
+		)
+	);
 </script>
 
 <header>
@@ -54,13 +73,18 @@
 		{#each branches as { branch, pullRequestNumber, pullRequestTitle } (branch)}
 			<li class="branch">
 				{#if pullRequestNumber !== null}
-					<ExternalLink sneaky url={pullRequestURL(repo, { pullRequestNumber })}>
-						#{pullRequestNumber}
-					</ExternalLink>
+					<span>
+						<ExternalLink url={pullRequestURL(repo, { pullRequestNumber })}>
+							#{pullRequestNumber}
+						</ExternalLink>
+					</span>
+				{:else if branch === 'main'}
+					<span style:color="var(--accent)"> default </span>
 				{:else}
 					<span class="no-pr"></span>
 				{/if}
 				<a
+					class="sneaky"
 					href={resolve('/[owner]/[repo]/branches/[...branch]', {
 						...params,
 						branch
@@ -68,23 +92,51 @@
 				>
 					{branch}
 				</a>
-				<span class="pr-title">{pullRequestTitle}</span>
+				<span class="subdued">{pullRequestTitle}</span>
 			</li>
 		{/each}
 	</ul>
 </section>
 
-<section class="flakies">
+<section class="flakies" style:--projects-count={projects.size}>
 	<h2>Flakies</h2>
 
 	<ul>
 		{#each flakies as { test, runsAmount, projectIds } (test!.id)}
 			<li>
-				<span class="times">{runsAmount} times</span>
-				<a href={linkToTest(params, test!, 'main')}>
+				<span class="subdued">
+					{#if projectIds.length === projects.size}
+						*
+					{:else}
+						{#each projectIds as id, i (id)}
+							{@const { name, abbreviation } = projects.get(id)!}
+							{#if i > 0}+{/if}<a
+								class="sneaky"
+								href={resolve('/[owner]/[repo]/projects/[project]', {
+									...params,
+									project: name
+								})}
+							>
+								{abbreviation}
+							</a>
+						{/each}
+					{/if}
+				</span>
+				<span
+					class="times"
+					style:color={lowerIsBetterColor(
+						flakies.map((f) => f.runsAmount),
+						runsAmount
+					)}
+				>
+					{runsAmount}
+				</span>
+				<span class="subdued">
+					{basename(test!.filePath)}
+				</span>
+				<a class="sneaky" href={linkToTest(params, test!, 'main')}>
 					{test!.title}
 				</a>
-				{@render projectsList(projectIds)}
 			</li>
 		{/each}
 	</ul>
@@ -94,35 +146,25 @@
 	<h2>We'll get GTA6 before these tests end</h2>
 	<ul>
 		{#each longs as { test, averageDuration, projectIds } (test!.id)}
+			{@const duration = parseDuration(averageDuration!)}
+			{@const ms = durationToMilliseconds(duration)}
 			<li>
-				<span>{formatDuration(roundDuration(parseDuration(averageDuration!)))}</span>
-				<a href={linkToTest(params, test!, 'main')}>
+				<span
+					style:color={lowerIsBetterColor(
+						longs.map((l) => durationToMilliseconds(parseDuration(l.averageDuration!))),
+						ms
+					)}>{formatDurationShort(roundDuration(duration))}</span
+				>
+				<span class="subdued">
+					{basename(test!.filePath)}
+				</span>
+				<a class="sneaky" href={linkToTest(params, test!, 'main')}>
 					{test!.title}
 				</a>
-				{@render projectsList(projectIds)}
 			</li>
 		{/each}
 	</ul>
 </section>
-
-{#snippet projectsList(ids: number[])}
-	<span class="projects">
-		on
-		{#each ids as id, i (id)}
-			{#if i > 0},
-			{/if}
-			{@const { name } = projects.get(id)!}
-			<a
-				href={resolve('/[owner]/[repo]/projects/[project]', {
-					...params,
-					project: name
-				})}
-			>
-				{name}
-			</a>
-		{/each}
-	</span>
-{/snippet}
 
 <section>
 	<h2>Tests</h2>
@@ -173,9 +215,16 @@
 </section>
 
 <style>
-	:is(.flakies, .longs) ul li {
+	.flakies ul li {
 		display: grid;
-		grid-template-columns: 15ch 1fr 1fr;
+		--projects-size: calc(3ch * (var(--projects-count) - 1));
+		grid-template-columns: var(--projects-size) 4ch 25ch 1fr;
+		gap: 0 0.75em;
+	}
+
+	.longs ul li {
+		display: grid;
+		grid-template-columns: 4ch 25ch 1fr;
 		gap: 0 0.75em;
 	}
 
@@ -185,8 +234,12 @@
 
 	.branch {
 		display: grid;
-		grid-template-columns: 5ch 30ch 1fr;
+		grid-template-columns: 7ch 30ch 1fr;
 		gap: 0 0.75em;
+
+		& > :nth-child(1) {
+			text-align: right;
+		}
 
 		a {
 			white-space: nowrap;

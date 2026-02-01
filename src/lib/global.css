@@ -31,7 +31,7 @@ a {
 
 	&:not(.sneaky):not(.subdued),
 	&:is(.sneaky):is(:hover, :focus-visible) {
-		color: rgb(233, 57, 195);
+		color: var(--accent);
 	}
 
 	&:not(:hover):not(:focus-visible):not(.sneaky) {
@@ -39,28 +39,32 @@ a {
 	}
 }
 
-li.empty {
-	color: gray;
+:root {
+	--subdued: gray;
+	--success: light-dark(rgb(33, 184, 33), greenyellow);
+	--failure: light-dark(rgb(143, 11, 11), rgb(236, 74, 74));
+	--warning: light-dark(rgb(216, 106, 4), orange);
+	--accent: rgb(233, 57, 195);
 }
 
 .subdued {
-	color: gray;
-}
-
-:root {
-	--subdued: gray;
+	color: var(--subdued);
 }
 
 .success {
-	color: light-dark(rgb(33, 184, 33), greenyellow);
+	color: var(--success);
 }
 
 .failure {
-	color: light-dark(rgb(143, 11, 11), rgb(236, 74, 74));
+	color: var(--failure);
 }
 
 .warning {
-	color: light-dark(rgb(216, 106, 4), orange);
+	color: var(--warning);
+}
+
+li.empty {
+	color: var(--subdued);
 }
 
 progress {
