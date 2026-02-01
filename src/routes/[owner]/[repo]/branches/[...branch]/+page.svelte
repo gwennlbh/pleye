@@ -20,10 +20,13 @@
 	import { projectsOfRepo, repository, testsWithLatestTestrun } from '../../data.remote.js';
 	import { expectedTestrunDuration, runsOfBranch } from './data.remote.js';
 	import { holdingKeys } from '../../../../+layout.svelte';
+	import { tick } from 'svelte';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
 	const projects = $derived(await projectsOfRepo(repo.id));
+
+	let refreshing = $state(false);
 
 	const ongoing = $derived(
 		await runsOfBranch({ ...params, repoId: repo.id, status: 'in_progress' })
@@ -34,14 +37,21 @@
 
 	const currently = $derived(await testsWithLatestTestrun({ ...params, repoId: repo.id }));
 
+	const refreshRate = $derived(Number(page.url.searchParams.get('refresh') ?? 3) * 1000);
+
 	let interval: number | NodeJS.Timeout | undefined = $state();
 	$effect(() => {
-		interval = setInterval(
-			() => {
-				void runsOfBranch({ ...params, repoId: repo.id, status: 'in_progress' }).refresh();
-			},
-			Number(page.url.searchParams.get('refresh') ?? 3) * 1000
-		);
+		interval = setInterval(() => {
+			refreshing = true;
+			void runsOfBranch({ ...params, repoId: repo.id, status: 'in_progress' })
+				.refresh()
+				.then(async () => tick())
+				.then(() => {
+					requestAnimationFrame(() => {
+						refreshing = false;
+					});
+				});
+		}, refreshRate);
 
 		return () => clearInterval(interval);
 	});
@@ -60,23 +70,17 @@
 
 <header>
 	<a href={resolve('/[owner]/[repo]', params)}>back</a>
-	{#if interval}
-		<button
-			onclick={() => {
-				clearInterval(interval);
-				interval = undefined;
-			}}
-		>
-			stop autoupdate
-		</button>
-	{:else}
-		<button disabled>autoupdate stopped</button>
-	{/if}
+
 	<h1>Runs on {params.branch}</h1>
 </header>
 
 <section>
-	<h2>Ongoing</h2>
+	<h2>
+		Ongoing
+		<span class="ping" class:loaded={!refreshing} title="Refreshing every {refreshRate * 1e-3}s">
+			&bull;
+		</span>
+	</h2>
 
 	{@render list(ongoing, true)}
 </section>
@@ -389,6 +393,10 @@
 			margin-top: 0.5em;
 		}
 
+		&.has-progress-bar + :not(.has-progress-bar) {
+			margin-bottom: 0.5em;
+		}
+
 		.count,
 		.job-name {
 			text-align: right;
@@ -405,5 +413,18 @@
 		> summary {
 			margin-bottom: 0.75em;
 		}
+	}
+
+	@keyframes fadeout {
+		from {
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
+		}
+	}
+
+	.ping.loaded {
+		animation: fadeout 600ms ease-out forwards;
 	}
 </style>
