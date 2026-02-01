@@ -96,7 +96,7 @@ export default class Pleye {
 	onBegin(config, suite) {
 		this.#expectedTestsCount = suite.allTests().length;
 
-		this.#sendPayload('begin', {
+		void this.#sendPayload('begin', {
 			run: {
 				...this.#runData,
 				baseDirectory: this.#baseDirectory,
@@ -115,7 +115,7 @@ export default class Pleye {
 	 * @param {PW.FullResult} result
 	 */
 	onEnd(result) {
-		this.#sendPayload('end', {
+		void this.#sendPayload('end', {
 			status: 'completed',
 			completedAt: new Date(),
 			result: result.status,
@@ -161,31 +161,36 @@ export default class Pleye {
 			return;
 		}
 
-		this.#sendPayload('step-begin', {
-			githubJobId: this.#runData.githubJobId,
-			test: this.#testIdentifierParams(test),
-			step: {
-				index,
-				retry: result.retry,
-				title: step.titlePath().at(-1) ?? '',
-				path: step.titlePath().slice(0, -1),
+		void (async () => {
+			await this.#sendPayload('step-begin', {
+				githubJobId: this.#runData.githubJobId,
+				test: this.#testIdentifierParams(test),
+				step: {
+					index,
+					retry: result.retry,
+					title: step.titlePath().at(-1) ?? '',
+					path: step.titlePath().slice(0, -1),
 
-				startedAt: step.startTime,
-				annotations: step.annotations,
-				category: toStepCategory(step.category),
-				filePath: step.location ? this.#relativeFilepath(step.location.file) : null,
-				locationInFile: step.location ? [step.location.line, step.location.column] : null
-				// TODO: step.parent
-				// parentStepId: step.parent
-			}
-		});
+					startedAt: step.startTime,
+					annotations: step.annotations,
+					category: toStepCategory(step.category),
+					filePath: step.location ? this.#relativeFilepath(step.location.file) : null,
+					locationInFile: step.location ? [step.location.line, step.location.column] : null
+					// TODO: step.parent
+					// parentStepId: step.parent
+				}
+			});
 
-		this.#sendPayload('step-end', {
-			githubJobId: this.#runData.githubJobId,
-			step: stepIdentifier,
-			duration: toISOInterval(step.duration),
-			error: step.error ? this.#toError(step.error) : undefined
-		});
+			// Small delay to ensure step-begin is processed before step-end
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
+			await this.#sendPayload('step-end', {
+				githubJobId: this.#runData.githubJobId,
+				step: stepIdentifier,
+				duration: toISOInterval(step.duration),
+				error: step.error ? this.#toError(step.error) : undefined
+			});
+		})();
 	}
 
 	/**
@@ -207,7 +212,7 @@ export default class Pleye {
 		// If we're gonna retry a test, the expected tests count increases
 		if (result.retry) this.#expectedTestsCount++;
 
-		this.#sendPayload('test-begin', {
+		void this.#sendPayload('test-begin', {
 			githubJobId: this.#runData.githubJobId,
 			projectName: project.name,
 			testrunsCount: this.#expectedTestsCount,
@@ -242,7 +247,7 @@ export default class Pleye {
 				result.attachments.map((a) => this.#attachmentTraceViewerURL(a))
 			);
 
-		this.#sendPayload('test-end', {
+		void this.#sendPayload('test-end', {
 			githubJobId: this.#runData.githubJobId,
 			test: this.#testIdentifierParams(test),
 			outcome: test.outcome(),
@@ -270,8 +275,8 @@ export default class Pleye {
 	 * @param {Event} event
 	 * @param {Inputs[Event]} payload
 	 */
-	#sendPayload(event, payload) {
-		void fetch(`${this.#serverOrigin}/update/${this.#repositoryGitHubId}/${event}`, {
+	async #sendPayload(event, payload) {
+		return fetch(`${this.#serverOrigin}/update/${this.#repositoryGitHubId}/${event}`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
