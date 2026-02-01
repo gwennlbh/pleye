@@ -15,54 +15,63 @@
 		testsWithLatestTestrun
 	} from './data.remote.js';
 	import { vscodeURL } from '$lib/filepaths.js';
+	import ExternalLink from '$lib/ExternalLink.svelte';
+	import { pullRequestURL } from '$lib/github.js';
 
 	const { params } = $props();
 
-	const { id } = $derived(await repository(params));
-	const projects = $derived(await projectsOfRepo(id));
-	const longs = $derived(await longTests(id));
-	const flakies = $derived(await flakyTests(id));
-	const branches = $derived(await branchesOfRepo(id));
-	const tests = $derived(await testsWithLatestTestrun({ repoId: id, branch: 'main' }));
+	const repo = $derived(await repository(params));
+	const projects = $derived(await projectsOfRepo(repo.id));
+	const longs = $derived(await longTests(repo.id));
+	const flakies = $derived(await flakyTests(repo.id));
+	const branches = $derived(await branchesOfRepo(repo.id));
+	const tests = $derived(await testsWithLatestTestrun({ repoId: repo.id, branch: 'main' }));
 </script>
 
-<h1>{params.owner}/{params.repo}</h1>
+<header>
+	<h1>{params.owner}/{params.repo}</h1>
+	<p>
+		projects = {'{'}
+		{#each projects as [id, project], i (id)}
+			{#if i > 0},
+			{/if}
+			<a
+				href={resolve('/[owner]/[repo]/projects/[project]', {
+					...params,
+					project: project.name
+				})}
+			>
+				{project.name}
+			</a>
+		{/each}
+		{'}'}
+	</p>
+</header>
 
-<section class="side-by-side">
-	<div class="left">
-		<h2>Projects</h2>
-		<ul>
-			{#each projects as [id, project] (id)}
-				<li>
-					<a
-						href={resolve('/[owner]/[repo]/projects/[project]', {
-							...params,
-							project: project.name
-						})}
-					>
-						{project.name}
-					</a>
-				</li>
-			{/each}
-		</ul>
-	</div>
-	<div class="right">
-		<h2>Branches</h2>
-		<ul>
-			{#each branches as branch (branch)}
-				<li>
-					<a
-						href={resolve('/[owner]/[repo]/branches/[branch]', {
-							...params,
-							branch
-						})}
-					>
-						{branch}
-					</a>
-				</li>
-			{/each}
-		</ul>
-	</div>
+<section>
+	<h2>Branches</h2>
+	<ul>
+		{#each branches as { branch, pullRequestNumber, pullRequestTitle } (branch)}
+			<li class="branch">
+				{#if pullRequestNumber !== null}
+					<ExternalLink sneaky url={pullRequestURL(repo, { pullRequestNumber })}>
+						#{pullRequestNumber}
+					</ExternalLink>
+				{:else}
+					<span class="no-pr"></span>
+				{/if}
+				<a
+					href={resolve('/[owner]/[repo]/branches/[...branch]', {
+						...params,
+						branch
+					})}
+				>
+					{branch}
+				</a>
+				<span class="pr-title">{pullRequestTitle}</span>
+			</li>
+		{/each}
+	</ul>
 </section>
 
 <section class="flakies">
@@ -172,5 +181,17 @@
 
 	.node-status {
 		margin-left: 0.5em;
+	}
+
+	.branch {
+		display: grid;
+		grid-template-columns: 5ch 30ch 1fr;
+		gap: 0 0.75em;
+
+		a {
+			white-space: nowrap;
+			overflow-x: hidden;
+			text-overflow: ellipsis;
+		}
 	}
 </style>

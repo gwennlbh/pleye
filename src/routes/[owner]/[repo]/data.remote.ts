@@ -22,8 +22,6 @@ export const repository = query(type({ owner: 'string', repo: 'string' }), async
 	return repo;
 });
 
-
-
 export const projectsOfRepo = query(type('number'), async (repo) => {
 	const projects = await db.query.projects.findMany({
 		where: eq(tables.projects.repositoryId, repo)
@@ -131,9 +129,32 @@ export const longTests = query(type('number'), async (repoId) => {
 
 export const branchesOfRepo = query(type('number'), async (repoId) => {
 	const branches = await db
-		.selectDistinct({ branch: tables.runs.branch })
+		.selectDistinctOn([tables.runs.branch], {
+			pullRequestNumber: tables.runs.pullRequestNumber,
+			pullRequestTitle: tables.runs.pullRequestTitle,
+			branch: tables.runs.branch
+		})
 		.from(tables.runs)
 		.where(eq(tables.runs.repositoryId, repoId));
 
-	return branches.map((b) => b.branch);
+	const github: Array<{ state: 'open' | 'closed' | 'merged'; number: number }> = await fetch(
+		`https://api.github.com/repositories/${repoId}/pulls`
+	).then((res) => res.json());
+
+	return branches
+		.map((branch) => ({
+			...branch,
+			pullRequestState: github.find((pr) => pr.number === branch.pullRequestNumber)?.state ?? null
+		}))
+		.filter((branch) => branch.pullRequestState === null || branch.pullRequestState === 'open')
+		.toSorted((a, b) => {
+			if (a.branch === 'main') return -1;
+			if (b.branch === 'main') return 1;
+
+			if (a.pullRequestNumber !== null && b.pullRequestNumber !== null) {
+				return b.pullRequestNumber - a.pullRequestNumber;
+			}
+
+			return a.branch.localeCompare(b.branch);
+		});
 });
