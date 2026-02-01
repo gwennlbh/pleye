@@ -1,10 +1,8 @@
-// TODO make this configurable
-const PROJECT_ABBREVIATIONS: Record<string, string> = {
-	chromium: 'cr',
-	firefox: 'ff',
-	webkit: 'wk'
-};
+import { abbreviate } from './text';
 
+/**
+ * A 2-letter abbreviation for a project name
+ */
 export function projectNameAbbreviation(name: string): string {
-	return PROJECT_ABBREVIATIONS[name.toLowerCase()] ?? name.slice(0, 2);
+	return abbreviate(2, name);
 }
