@@ -209,9 +209,6 @@ export default class Pleye {
 		this.#stepIndices.set(this.#stepIndicesKey(test), -1);
 		if (this.#debugging) console.info('[Pleye] onTestBegin, stepIndices are', this.#stepIndices);
 
-		// If we're gonna retry a test, the expected tests count increases
-		if (result.retry) this.#expectedTestsCount++;
-
 		void this.#sendPayload('test-begin', {
 			githubJobId: this.#runData.githubJobId,
 			projectName: project.name,
