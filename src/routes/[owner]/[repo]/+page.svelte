@@ -24,7 +24,7 @@
 	import { pullRequestURL } from '$lib/github.js';
 	import { gradientedColor } from '$lib/color.js';
 	import { goto } from '$app/navigation';
-	import { basename } from '$lib/utils.js';
+	import { basename, commonPrefixAndSuffixTrimmer } from '$lib/utils.js';
 
 	const { params } = $props();
 
@@ -45,6 +45,12 @@
 			'failure'
 		)
 	);
+
+	const filepathTrimmer = $derived(
+		commonPrefixAndSuffixTrimmer(
+			tests.map(t => t.filePath)
+		)
+	)
 </script>
 
 <header>
@@ -132,7 +138,7 @@
 					{runsAmount}
 				</span>
 				<span class="subdued">
-					{basename(test!.filePath)}
+					{filepathTrimmer(test!.filePath)}
 				</span>
 				<a class="sneaky" href={linkToTest(params, test!, 'main')}>
 					{test!.title}
@@ -156,7 +162,7 @@
 					)}>{formatDurationShort(roundDuration(duration))}</span
 				>
 				<span class="subdued">
-					{basename(test!.filePath)}
+					{filepathTrimmer(test!.filePath)}
 				</span>
 				<a class="sneaky" href={linkToTest(params, test!, 'main')}>
 					{test!.title}
