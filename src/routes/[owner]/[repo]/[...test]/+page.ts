@@ -9,12 +9,12 @@ export async function load({ params, url }) {
 		testId: test.id,
 		branches: branch ? [branch] : null,
 		openPRs: branch
-			? undefined
+			? []
 			: await fetch(`https://api.github.com/repos/${params.owner}/${params.repo}/pulls?state=open`)
 					.then((res) => res.json())
-					.then((prs) => (!Array.isArray(prs) ? [] : undefined))
+					.then((prs) => (!Array.isArray(prs) ? [] : prs))
 					.then((prs) => prs?.map((pr: { number: number }) => pr.number))
-					.catch(() => undefined)
+					.catch(() => [])
 	});
 
 	return { repo, test, testruns };
