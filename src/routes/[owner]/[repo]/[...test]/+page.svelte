@@ -46,12 +46,6 @@
 			return `<a rel="external" href="${url}">${relativePath}:${line}:${column}</a>`;
 		});
 	}
-
-	let repositoryUserRoot = $state('');
-	$effect(() => {
-		if (!browser) return;
-		repositoryUserRoot = localStorage.getItem('repositoryUserRoot') || '';
-	});
 </script>
 
 <svelte:window
