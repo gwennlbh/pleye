@@ -71,7 +71,6 @@ export default class Pleye {
 		const {
 			apiKey,
 			serverOrigin,
-			repositoryGitHubId,
 			debug,
 			baseDirectory,
 			traceViewerUrl,
@@ -80,9 +79,10 @@ export default class Pleye {
 			pullRequestNumber
 		} = params;
 
+
 		this.#apiKey = apiKey;
 		this.#serverOrigin = serverOrigin;
-		this.#repositoryGitHubId = repositoryGitHubId;
+		this.#repositoryGitHubId = Number(process.env.GITHUB_REPOSITORY_ID);
 		this.#debugging = debug ?? false;
 		this.#baseDirectory = baseDirectory ?? process.env.GITHUB_WORKSPACE ?? process.cwd();
 		this.#traceViewerUrl = traceViewerUrl ?? (() => null);
