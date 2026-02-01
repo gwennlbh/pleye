@@ -32,13 +32,13 @@
 <svelte:window
 	onkeydown={(e) => {
 		if (typingInInput()) return;
-		e.preventDefault();
+		// e.preventDefault();
 		if (e.altKey) holdingKeys.alt = true;
 		if (e.shiftKey) holdingKeys.shift = true;
 	}}
 	onkeyup={(e) => {
 		if (typingInInput()) return;
-		e.preventDefault();
+		// e.preventDefault();
 		if (!e.altKey) holdingKeys.alt = false;
 		if (!e.shiftKey) holdingKeys.shift = false;
 	}}
