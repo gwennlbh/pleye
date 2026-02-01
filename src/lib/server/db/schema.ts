@@ -41,7 +41,8 @@ export const repositories = pgTable(
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		githubId: integer('github_id').notNull().unique(),
 		githubOwner: text('github_owner').notNull(),
-		githubRepo: text('github_repo').notNull()
+		githubRepo: text('github_repo').notNull(),
+		description: text('description').notNull().default(''),
 	},
 	(t) => [
 		index('repositories_by_owner_and_repo').on(t.githubOwner, t.githubRepo),
@@ -66,6 +67,27 @@ export const projects = pgTable(
 	(t) => [
 		index('projects_by_repository').on(t.repositoryId),
 		uniqueIndex('projects_repository_and_name').on(t.repositoryId, t.name)
+	]
+);
+
+export const branches = pgTable(
+	'branches',
+	{
+		id: serial('id').primaryKey(),
+		repositoryId: integer('repository_id')
+			.notNull()
+			.references(() => repositories.id, { onDelete: 'cascade' }),
+
+		name: text('name').notNull(),
+		pullRequestNumber: integer('pull_request_number'),
+		pullRequestTitle: text('pull_request_title'),
+		pullRequestState: text('pull_request_state', {
+			enum: ['open', 'closed', 'merged', 'draft'] as const
+		})
+	},
+	(t) => [
+		index('branches_by_repository').on(t.repositoryId),
+		uniqueIndex('branches_repository_and_name').on(t.repositoryId, t.name)
 	]
 );
 
@@ -114,6 +136,7 @@ export const runs = pgTable(
 		commitAuthorEmail: text('commit_author_email').notNull().default(''),
 		committedAt: timestamp('committed_at'),
 		branch: text('branch').notNull(),
+		branchId: integer('branch_id').references(() => branches.id, { onDelete: 'cascade' }),
 		pullRequestNumber: integer('pull_request_number'),
 		pullRequestTitle: text('pull_request_title'),
 		startedAt: timestamp('started_at').notNull(),

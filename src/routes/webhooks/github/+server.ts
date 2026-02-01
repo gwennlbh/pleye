@@ -3,8 +3,11 @@ import { keys } from '$lib/utils';
 import { Webhooks } from '@octokit/webhooks';
 import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
-import { onPing, PingEvent } from './ping.js';
-import { onWorkflowJob, WorkflowJobEvent } from './workflow-job.js';
+import { PingEvent, onPing } from './ping.js';
+import { WorkflowJobEvent, onWorkflowJob } from './workflow-job.js';
+import { CreateEvent, onCreate } from './create.js';
+import { PullRequestEvent, onPullRequest } from './pull-request.js';
+import { RepositoryEvent, onRepository } from './repository.js';
 
 const Webhook = new Webhooks({
 	secret: env.MASTER_KEY
@@ -12,7 +15,10 @@ const Webhook = new Webhooks({
 
 const Events = {
 	ping: PingEvent,
-	workflow_job: WorkflowJobEvent
+	workflow_job: WorkflowJobEvent,
+	pull_request: PullRequestEvent,
+	repository: RepositoryEvent,
+	create: CreateEvent
 };
 
 const EventName = type.enumerated(...keys(Events));
@@ -49,6 +55,18 @@ export async function POST({ request }) {
 		// (in case the reporter couldnt do so (job was cancelled, etc))
 		case 'workflow_job': {
 			return onWorkflowJob(payload);
+		}
+
+		case 'pull_request': {
+			return onPullRequest(payload);
+		}
+
+		case 'repository': {
+			return onRepository(payload);
+		}
+
+		case 'create': {
+			return onCreate(payload);
 		}
 	}
 }

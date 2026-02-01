@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db/index.js';
-import { projects, runs } from '$lib/server/db/schema';
+import { branches, projects, runs } from '$lib/server/db/schema';
 import { type } from 'arktype';
 import { json } from '@sveltejs/kit';
 import { createInsertSchema } from 'drizzle-arktype';
@@ -17,9 +17,26 @@ export async function POST({ request, params }) {
 
 	const repository = await findRepository(params);
 
+	let branch = await db.query.branches.findFirst({
+		where: and(eq(branches.repositoryId, repository.id), eq(branches.name, data.run.branch))
+	});
+
+	if (!branch && data.run.branch) {
+		[branch] = await db
+			.insert(branches)
+			.values({
+				repositoryId: repository.id,
+				name: data.run.branch,
+				pullRequestNumber: data.run.pullRequestNumber ?? null,
+				pullRequestTitle: data.run.pullRequestTitle ?? null
+			})
+			.returning();
+	}
+
 	for (const projectData of data.projects) {
 		const projectValues = {
 			repositoryId: repository.id,
+			branchId: branch?.id ?? null,
 			...projectData
 		};
 
