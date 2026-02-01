@@ -135,9 +135,12 @@ export const runs = pgTable(
 		commitAuthorUsername: text('commit_author_username'),
 		commitAuthorEmail: text('commit_author_email').notNull(),
 		committedAt: timestamp('committed_at'),
+		/** @deprecated use branches table instead */
 		branch: text('branch').notNull(),
 		branchId: integer('branch_id').references(() => branches.id, { onDelete: 'cascade' }),
+		/** @deprecated use branches table instead */
 		pullRequestNumber: integer('pull_request_number'),
+		/** @deprecated use branches table instead */
 		pullRequestTitle: text('pull_request_title'),
 		startedAt: timestamp('started_at').notNull(),
 		completedAt: timestamp('completed_at'),

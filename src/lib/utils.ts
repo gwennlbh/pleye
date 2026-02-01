@@ -49,22 +49,11 @@ export function uniqueById<T extends { id: number | string }>(array: T[]): T[] {
 	return uniqueBy(array, (item) => item.id);
 }
 
-/**
- *
- * @param strings
- * @param fillString left-pad strings that are smaller than the biggest trimmed string with this
- * @returns
- */
-export function commonPrefixAndSuffixTrimmer(
-	strings: string[],
-	fillString = ''
-): (s: string) => string {
+export function commonPrefixTrimmer(strings: string[]): (s: string) => string {
 	if (strings.length === 0) return (s) => s;
 
 	let start = 0;
-	let end = 0;
 	const first = strings[0];
-	const last = strings[strings.length - 1];
 	const minLength = Math.min(...strings.map((s) => s.length));
 
 	// Find common prefix
@@ -77,8 +66,18 @@ export function commonPrefixAndSuffixTrimmer(
 		}
 	}
 
+	return (s) => s.slice(start);
+}
+
+export function commonSuffixTrimmer(strings: string[]): (s: string) => string {
+	if (strings.length === 0) return (s) => s;
+
+	let end = 0;
+	const last = strings[strings.length - 1];
+	const minLength = Math.min(...strings.map((s) => s.length));
+
 	// Find common suffix
-	while (end < minLength - start) {
+	while (end < minLength) {
 		const char = last[last.length - 1 - end];
 		if (strings.every((s) => s[s.length - 1 - end] === char)) {
 			end++;
@@ -87,11 +86,26 @@ export function commonPrefixAndSuffixTrimmer(
 		}
 	}
 
+	return (s) => s.slice(0, s.length - end);
+}
+
+/**
+ *
+ * @param strings
+ * @param fillString left-pad strings that are smaller than the biggest trimmed string with this
+ * @returns
+ */
+export function commonPrefixAndSuffixTrimmer(
+	strings: string[],
+	fillString = ''
+): (s: string) => string {
+	const trimmer = (s: string) => commonSuffixTrimmer(strings)(commonPrefixTrimmer(strings)(s));
+
 	// Length of longest trimmed string
-	const trimmedLength = Math.max(...strings.map((s) => s.length - start - end));
+	const trimmedLength = Math.max(...strings.map((s) => trimmer(s).length));
 
 	return (s) => {
-		const trimmed = s.slice(start, s.length - end);
+		const trimmed = trimmer(s);
 		if (fillString) return trimmed.padStart(trimmedLength, fillString);
 		return trimmed;
 	};

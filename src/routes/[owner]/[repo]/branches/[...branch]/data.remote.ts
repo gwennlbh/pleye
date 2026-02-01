@@ -20,10 +20,11 @@ export const runsOfBranch = query(
 			.from(tables.runs)
 			.leftJoin(tables.testruns, eq(tables.testruns.runId, tables.runs.id))
 			.leftJoin(tables.tests, eq(tables.tests.id, tables.testruns.testId))
+			.leftJoin(tables.branches, eq(tables.branches.id, tables.runs.branchId))
 			.where(
 				and(
 					eq(tables.runs.repositoryId, params.repoId),
-					eq(tables.runs.branch, params.branch),
+					eq(tables.branches.name, params.branch),
 					// TODO find a way to keep runs that are part of the same workflow run but have statuses
 					// other than the requested one, as long as at least one run matches the status.
 					// eq(tables.runs.status, params.status),
@@ -69,7 +70,7 @@ export const runsOfBranch = query(
 
 export const expectedTestrunDuration = query.batch(
 	type({ testId: 'number', projectId: 'number', branch: 'string' }),
-	async (testruns) => {
+	async (params) => {
 		// Get average of all testrun durations for the given testrun's test and project, considering only passing testruns that have their run on the main branch or on this branch
 
 		const results = await db
@@ -81,18 +82,19 @@ export const expectedTestrunDuration = query.batch(
 			.from(tables.testruns)
 			.leftJoin(tables.runs, eq(tables.runs.id, tables.testruns.runId))
 			.leftJoin(tables.tests, eq(tables.tests.id, tables.testruns.testId))
+			.leftJoin(tables.branches, eq(tables.branches.id, tables.runs.branchId))
 			.where(
 				and(
-					inArray(tables.runs.branch, ['main', ...testruns.map((tr) => tr.branch)]),
+					inArray(tables.branches.name, ['main', ...params.map((tr) => tr.branch)]),
 					isNotNull(tables.testruns.duration),
 					eq(tables.testruns.outcome, 'expected'),
 					inArray(
 						tables.testruns.testId,
-						testruns.map((tr) => tr.testId)
+						params.map((tr) => tr.testId)
 					),
 					inArray(
 						tables.testruns.projectId,
-						testruns.map((tr) => tr.projectId)
+						params.map((tr) => tr.projectId)
 					)
 				)
 			)
@@ -119,7 +121,8 @@ export const testsWithLatestTestrunOnBranch = query(
 					.select()
 					.from(tables.testruns)
 					.leftJoin(tables.runs, eq(tables.runs.id, tables.testruns.runId))
-					.where(and(eq(tables.testruns.testId, test.id), eq(tables.runs.branch, params.branch)))
+					.leftJoin(tables.branches, eq(tables.branches.id, tables.runs.branchId))
+					.where(and(eq(tables.testruns.testId, test.id), eq(tables.branches.name, params.branch)))
 					.orderBy(desc(tables.testruns.startedAt))
 					.limit(1)
 					.then((rows) => rows[0]?.testruns)

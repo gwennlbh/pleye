@@ -8,13 +8,6 @@ export async function load({ params, url }) {
 	const testruns = await runsOfTest({
 		testId: test.id,
 		branches: branch ? [branch] : null,
-		openPRs: branch
-			? []
-			: await fetch(`https://api.github.com/repos/${params.owner}/${params.repo}/pulls?state=open`)
-					.then((res) => res.json())
-					.then((prs) => (!Array.isArray(prs) ? [] : prs))
-					.then((prs) => prs?.map((pr: { number: number }) => pr.number))
-					.catch(() => [])
 	});
 
 	return { repo, test, testruns };

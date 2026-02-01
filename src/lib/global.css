@@ -4,14 +4,17 @@ body {
 	font-weight: 300;
 	margin: 3em 4em;
 
-	display: flex;
-	flex-direction: column;
-	gap: 3em;
-
 	color-scheme: light dark;
 
 	color: light-dark(#111, #eee);
 	background-color: light-dark(#fafafa, #121212);
+}
+
+body,
+main {
+	display: flex;
+	flex-direction: column;
+	gap: 3em;
 }
 
 code,

@@ -29,27 +29,28 @@ export const testInRepo = query(type({ repoId: 'number', test: 'string' }), asyn
 export const runsOfTest = query(
 	type({
 		testId: 'number',
-		branches: 'string[] | null = null',
-		openPRs: ['number[]', '=', () => []]
+		branches: 'string[] | null = null'
 	}),
-	async ({ testId: id, branches, openPRs }) => {
+	async ({ testId: id, branches }) => {
 		const rows = await db
 			.select()
 			.from(tables.testruns)
 			.leftJoin(tables.runs, eq(tables.runs.id, tables.testruns.runId))
 			.leftJoin(tables.results, eq(tables.results.testrunId, tables.testruns.id))
 			.leftJoin(tables.errors, eq(tables.errors.resultId, tables.results.id))
+			.leftJoin(tables.branches, eq(tables.branches.id, tables.runs.branchId))
 			.where(
 				and(
 					eq(tables.testruns.testId, id),
-					branches ? inArray(tables.runs.branch, branches) : undefined,
-					// Don't request runs from closed PRs if we know which PRs are still open
-					openPRs.length > 0
-						? or(
-								isNull(tables.runs.pullRequestNumber),
-								inArray(tables.runs.pullRequestNumber, openPRs)
+					// Either we get runs from the request branch(es)
+					branches ? inArray(tables.branches.name, branches) : undefined,
+					// Or we get only runs from open PRs or non-PR branches
+					branches
+						? undefined
+						: or(
+								inArray(tables.branches.pullRequestState, ['open', 'draft']),
+								isNull(tables.branches.pullRequestNumber)
 							)
-						: undefined
 				)
 			)
 			.orderBy(desc(tables.testruns.startedAt));
