@@ -13,7 +13,6 @@ import { spawnSync } from 'node:child_process';
  * @typedef {object} PleyeParams
  * @property {string} apiKey API Key to use
  * @property {string} serverOrigin Origin of the Pleye server, e.g. https://pleye.example.com
- * @property {number} repositoryGitHubId Github ID of the current repository, ${{ github.repository_id }}
  * @property {number} githubJobId ID of the current GitHub job we're on, ${{ github.job.check_run_id }}
  * @property {string} commitSha Current commit SHA
  * @property {number | undefined} [pullRequestNumber] Current pull request number, if applicable
@@ -28,6 +27,10 @@ import { spawnSync } from 'node:child_process';
  * - GITHUB_REPOSITORY
  * - GITHUB_RUN_ID
  * - GITHUB_JOB
+ * - GITHUB_HEAD_REF or GITHUB_REF_NAME
+ * - GITHUB_WORKFLOW
+ * - GITHUB_REPOSITORY
+ * - GITHUB_REPOSITORY_ID
  * - GH_TOKEN
  * And the following binaries to be available in PATH:
  * - git
