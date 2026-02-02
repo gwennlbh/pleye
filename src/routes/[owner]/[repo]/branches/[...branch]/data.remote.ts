@@ -21,7 +21,7 @@ export const runsOfBranch = query(
 			.leftJoin(tables.testruns, eq(tables.testruns.runId, tables.runs.id))
 			.leftJoin(tables.tests, eq(tables.tests.id, tables.testruns.testId))
 			.leftJoin(tables.branches, eq(tables.branches.id, tables.runs.branchId))
-			.leftJoin(tables.results, eq(tables.results.testrunId, tables.testruns.id))
+			// .leftJoin(tables.results, eq(tables.results.testrunId, tables.testruns.id))
 			.where(
 				and(
 					eq(tables.runs.repositoryId, params.repoId),
@@ -47,9 +47,10 @@ export const runsOfBranch = query(
 						.map((r) => ({
 							...r.testruns!,
 							test: r.tests!,
-							results: rows
-								.filter((resultRow) => resultRow.testruns?.id === r.testruns!.id)
-								.map((resultRow) => resultRow.results!)
+							results: []
+							// results: rows
+							// 	.filter((resultRow) => resultRow.testruns?.id === r.testruns!.id)
+							// 	.map((resultRow) => resultRow.results!)
 						}))
 				)
 			}))
