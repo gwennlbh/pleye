@@ -22,7 +22,7 @@
 		"db:studio": "drizzle-kit studio"
 	},
 	"devDependencies": {
-		"@eslint/compat": "^2.0.1",
+		"@eslint/compat": "^2.0.2",
 		"@eslint/js": "^9.39.2",
 		"@octokit/webhooks": "^14.2.0",
 		"@playwright/test": "^1.58.0",
