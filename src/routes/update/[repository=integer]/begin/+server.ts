@@ -59,6 +59,7 @@ export async function POST({ request, params }) {
 		.insert(runs)
 		.values({
 			repositoryId: repository.id,
+			branchId: branch?.id ?? null,
 			status: 'in_progress',
 			...data.run
 		})
