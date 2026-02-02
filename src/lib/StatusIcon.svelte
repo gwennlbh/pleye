@@ -48,7 +48,7 @@
 {:else if 'status' in data}
 	<StatusIcon {children} {inProgress} outcome={statusToOutcome(data.status)} />
 {:else if outcome === null && inProgress}
-	<span>… {@render children?.()}</span>
+		<span>⋯ {@render children?.()}</span>
 {:else if outcome === null}
 	<span class="failure">! {@render children?.()}</span>
 {:else if outcome === 'expected'}
