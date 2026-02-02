@@ -48,7 +48,7 @@ export async function POST({ request, params }) {
 			[project] = await db
 				.update(projects)
 				.set(projectValues)
-				.where(eq(projects.name, project.name))
+				.where(and(eq(projects.name, project.name), eq(projects.repositoryId, repository.id)))
 				.returning();
 		} else {
 			[project] = await db.insert(projects).values(projectValues).returning();
