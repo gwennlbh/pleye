@@ -1,11 +1,15 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import StatusIcon from './StatusIcon.svelte';
-	import type { results, testruns } from './server/db/schema';
+	import type { results, runs, testruns } from './server/db/schema';
 
 	type OutcomeOrStatus =
 		| { outcome: (typeof testruns.$inferSelect)['outcome'] }
-		| { status: (typeof results.$inferSelect)['status'] };
+		| { status: (typeof results.$inferSelect)['status'] }
+		| {
+				status: (typeof runs.$inferSelect)['status'];
+				result: (typeof runs.$inferSelect)['result'];
+		  };
 
 	type Props = {
 		/** If true, a null outcome will be considered as "in progress", otherwise it will be considered as "interrupted" */
@@ -13,10 +17,9 @@
 		children?: Snippet<[]>;
 	} & OutcomeOrStatus;
 
-	const { children, inProgress, ...outcomeOrStatus }: Props = $props();
+	const { children, inProgress, ...data }: Props = $props();
 
-	const outcome = $derived('outcome' in outcomeOrStatus ? outcomeOrStatus.outcome : undefined);
-	const status = $derived('status' in outcomeOrStatus ? outcomeOrStatus.status : undefined);
+	const outcome = $derived('outcome' in data ? data.outcome : undefined);
 
 	function statusToOutcome(
 		status: (typeof results.$inferSelect)['status']
@@ -38,8 +41,12 @@
 	}
 </script>
 
-{#if status !== undefined}
-	<StatusIcon {children} {inProgress} outcome={statusToOutcome(status)} />
+{#if 'result' in data && data.status === 'completed'}
+	<StatusIcon {children} status={data.result === 'timedout' ? 'timedOut' : data.result} />
+{:else if 'result' in data}
+	<StatusIcon {children} inProgress outcome={null} />
+{:else if 'status' in data}
+	<StatusIcon {children} {inProgress} outcome={statusToOutcome(data.status)} />
 {:else if outcome === null && inProgress}
 	<span>… {@render children?.()}</span>
 {:else if outcome === null}

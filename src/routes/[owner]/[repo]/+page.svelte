@@ -11,6 +11,7 @@
 	import ExternalLink from '$lib/ExternalLink.svelte';
 	import { vscodeURL } from '$lib/filepaths.js';
 	import { pullRequestURL } from '$lib/github.js';
+	import PullRequestState from '$lib/PullRequestState.svelte';
 	import StatusIcon from '$lib/StatusIcon.svelte';
 	import { aggregateTestrunOutcomes } from '$lib/testruns.js';
 	import { basename, commonPrefixTrimmer } from '$lib/utils.js';
@@ -18,6 +19,7 @@
 	import {
 		branchesOfRepo,
 		flakyTests,
+		latestRunOfBranch,
 		longTests,
 		projectsOfRepo,
 		repository,
@@ -53,14 +55,13 @@
 
 	const longestTrimmedFilepathLength = $derived(
 		Math.max(...tests.map((t) => filepathTrimmer(t.filePath).length))
-	)
+	);
 </script>
 
 <main
-style:--projects-count={projects.size}
-style:--longest-trimmed-filepath-length={longestTrimmedFilepathLength}
- >
-	
+	style:--projects-count={projects.size}
+	style:--longest-trimmed-filepath-length={longestTrimmedFilepathLength}
+>
 	<header>
 		<h1>{params.owner}/{params.repo}</h1>
 		<p>
@@ -80,11 +81,11 @@ style:--longest-trimmed-filepath-length={longestTrimmedFilepathLength}
 			{'}'}
 		</p>
 	</header>
-	
+
 	<section>
 		<h2>Branches</h2>
 		<ul>
-			{#each branches as { id, name, pullRequestNumber, pullRequestTitle } (id)}
+			{#each branches as { id, name, pullRequestNumber, pullRequestTitle, pullRequestState } (id)}
 				<li class="branch">
 					{#if pullRequestNumber !== null}
 						<span>
@@ -92,11 +93,25 @@ style:--longest-trimmed-filepath-length={longestTrimmedFilepathLength}
 								#{pullRequestNumber}
 							</ExternalLink>
 						</span>
+						<PullRequestState state={pullRequestState} />
 					{:else if name === 'main'}
 						<span style:color="var(--accent)"> default </span>
+						<span class="no-pr"></span>
 					{:else}
 						<span class="no-pr"></span>
+						<span class="no-pr"></span>
 					{/if}
+					{#await latestRunOfBranch({ repoId: repo.id, branchId: id })}
+						<span class="run-status"></span>
+					{:then run}
+						<span class="run-status">
+							{#if run}
+								<StatusIcon {...run} />
+							{/if}
+						</span>
+					{:catch}
+						<span class="run-status"></span>
+					{/await}
 					<a
 						class="sneaky"
 						href={resolve('/[owner]/[repo]/branches/[...branch]', {
@@ -111,10 +126,10 @@ style:--longest-trimmed-filepath-length={longestTrimmedFilepathLength}
 			{/each}
 		</ul>
 	</section>
-	
+
 	<section class="flakies">
 		<h2>Flakies</h2>
-	
+
 		<ul>
 			{#each flakies as { test, runsAmount, projectIds } (test!.id)}
 				<li>
@@ -155,7 +170,7 @@ style:--longest-trimmed-filepath-length={longestTrimmedFilepathLength}
 			{/each}
 		</ul>
 	</section>
-	
+
 	<section class="longs">
 		<h2>We'll get GTA6 before these tests end</h2>
 		<ul>
@@ -179,10 +194,10 @@ style:--longest-trimmed-filepath-length={longestTrimmedFilepathLength}
 			{/each}
 		</ul>
 	</section>
-	
+
 	<section>
 		<h2>Tests</h2>
-	
+
 		<TestTree {tests}>
 			{#snippet node(parent, tests)}
 				<span class="node-status" data-hide-if-open>
@@ -234,7 +249,7 @@ style:--longest-trimmed-filepath-length={longestTrimmedFilepathLength}
 		--projects-size: calc(3ch * (var(--projects-count) - 1));
 		--filepaths-size: calc(1ch * var(--longest-trimmed-filepath-length) + 1ch);
 	}
-	
+
 	.flakies ul li {
 		display: grid;
 		grid-template-columns: var(--projects-size) 4ch var(--filepaths-size) 1fr;
@@ -253,7 +268,7 @@ style:--longest-trimmed-filepath-length={longestTrimmedFilepathLength}
 
 	.branch {
 		display: grid;
-		grid-template-columns: 7ch 30ch 1fr;
+		grid-template-columns: 7ch 1ch 1ch 30ch 1fr;
 		gap: 0 0.75em;
 
 		& > :nth-child(1) {

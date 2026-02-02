@@ -7,6 +7,7 @@ import { error } from '@sveltejs/kit';
 import { type } from 'arktype';
 import {
 	and,
+	asc,
 	avg,
 	count,
 	desc,
@@ -168,3 +169,28 @@ export const branchesOfRepo = query(type('number'), async (repoId) => {
 		return a.name.localeCompare(b.name);
 	});
 });
+
+export const latestRunOfBranch = query.batch(
+	type({ repoId: 'number', branchId: 'number' }),
+	async (params) => {
+		const rows = await db
+			.selectDistinctOn([tables.runs.branchId])
+			.from(tables.runs)
+			.where(
+				and(
+					inArray(
+						tables.runs.repositoryId,
+						params.map((p) => p.repoId)
+					),
+					inArray(
+						tables.runs.branchId,
+						params.map((p) => p.branchId)
+					)
+				)
+			)
+			.orderBy(asc(tables.runs.branchId), desc(tables.runs.startedAt));
+
+		return ({ repoId, branchId }) =>
+			rows.find((row) => row.repositoryId === repoId && row.branchId === branchId);
+	}
+);
