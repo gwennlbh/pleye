@@ -98,7 +98,7 @@
 							<ExternalLink sneaky url={commitURL(repo, run)}
 								>{run.commitSha.slice(0, 7)}</ExternalLink
 							>
-							<StatusIcon {...testrun} inProgress={run.status === 'in_progress'} />
+							<StatusIcon {results} {...testrun} inProgress={run.status === 'in_progress'} />
 							<span
 								class="testrun-header"
 								class:failure={testrun.outcome === 'unexpected'}

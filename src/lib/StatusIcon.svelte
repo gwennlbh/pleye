@@ -4,7 +4,10 @@
 	import type { results, runs, testruns } from './server/db/schema';
 
 	type OutcomeOrStatus =
-		| { outcome: (typeof testruns.$inferSelect)['outcome'] }
+		| {
+				outcome: (typeof testruns.$inferSelect)['outcome'];
+				results?: (typeof results.$inferSelect)[];
+		  }
 		| { status: (typeof results.$inferSelect)['status'] }
 		| {
 				status: (typeof runs.$inferSelect)['status'];
@@ -47,8 +50,10 @@
 	<StatusIcon {children} inProgress outcome={null} />
 {:else if 'status' in data}
 	<StatusIcon {children} {inProgress} outcome={statusToOutcome(data.status)} />
+{:else if outcome === "skipped" && 'results' in data && data.results?.some(r => r.status === "interrupted")}
+	<StatusIcon {children} outcome={null} />
 {:else if outcome === null && inProgress}
-		<span>⋯ {@render children?.()}</span>
+	<span>⋯ {@render children?.()}</span>
 {:else if outcome === null}
 	<span class="failure">! {@render children?.()}</span>
 {:else if outcome === 'expected'}

@@ -163,7 +163,12 @@
 {#snippet list(groupedRuns: typeof ongoing | typeof completed, openDetails = false)}
 	<ul>
 		{#each groupedRuns as [runId, runs] (runId)}
-			{@const { commitSha, commitTitle, commitAuthorUsername, commitAuthorName, result } = runs[0]}
+			{@const { commitSha, commitTitle, commitAuthorUsername, commitAuthorName } = runs[0]}
+			{@const inProgress = runs.some((r) => r.status === 'in_progress')}
+			{@const outcome = aggregateTestrunOutcomes(
+				inProgress,
+				runs.flatMap((r) => r.testruns)
+			)}
 			{@const jobNameTrimmer = commonPrefixAndSuffixTrimmer(
 				runs.map((r) => r.githubJobName),
 				'0'
@@ -187,8 +192,9 @@
 				>
 					<summary
 						class={{
-							warning: runs.some((r) => r.testruns.some((tr) => tr.outcome === 'flaky')),
-							failure: result === 'failed' || result === 'interrupted'
+							warning: outcome === 'flaky',
+							failure: outcome === 'unexpected' || (outcome === null && !inProgress),
+							subdued: outcome === 'skipped'
 						}}
 					>
 						<ExternalLink sneaky url={workflowRunURL(repo, { githubRunId: runId })}
@@ -222,10 +228,20 @@
 									: undefined}
 
 							{@const dones = run.testruns.filter((tr) => !testrunIsOngoing(tr))}
-							{@const successes = dones.filter((tr) => tr.outcome !== 'unexpected')}
+							{@const okays = dones.filter(
+								(tr) =>
+									tr.outcome !== 'unexpected' &&
+									!(
+										tr.outcome === 'skipped' &&
+										tr.results.some((res) => res.status === 'interrupted')
+									)
+							)}
+							{@const interrupteds = dones.filter(
+								(tr) =>
+									tr.outcome === 'skipped' && tr.results.some((res) => res.status === 'interrupted')
+							)}
 							{@const failures = dones.filter((tr) => tr.outcome === 'unexpected')}
 							{@const flakies = dones.filter((tr) => tr.outcome === 'flaky')}
-							{@const expecteds = dones.filter((tr) => tr.outcome === 'expected')}
 
 							<li class="testrun" class:has-progress-bar={run.status === 'in_progress'}>
 								<span class="job-name subdued">
@@ -242,7 +258,7 @@
 										{#if flakies.length > 0}{flakies.length}~{/if}
 									</span>
 									<span class="success">
-										{#if successes.length > 0}{successes.length}✓{/if}
+										{#if okays.length > 0}{okays.length}✓{/if}
 									</span>
 									<span class="progress">
 										{dones.length + 1}/{run.testrunsCount}
@@ -314,7 +330,7 @@
 								{:else if run.result === 'passed'}
 									{#if flakies.length === 0}
 										<StatusIcon outcome="expected" />
-										<span class="count">{successes.length}</span>
+										<span class="count">{okays.length}</span>
 										<span class="thing">passed</span>
 									{:else}
 										<StatusIcon outcome="flaky" />
@@ -334,21 +350,42 @@
 									{/if}
 								{:else if run.result === 'failed'}
 									<StatusIcon outcome="unexpected" />
-									<span class="count"
-										><span class="failure">{failures.length}</span>/{dones.length}
-									</span>
-									<span class="thing failure"> failed: </span>
-									<span class="failures">
-										<span class="failure">
-											{#each failures.slice(0, 4) as failure, i (failure.id)}
+									{#if interrupteds.length === 0}
+										<span class="failure count">{interrupteds.length}/{dones.length}</span>
+										<span class="failure thing"> passed,</span>
+										<span class="failure failures">but something went wrong</span>
+									{:else if failures.length === 0}
+										<span class="count"><span class="failure">{interrupteds.length}</span>/{dones.length}</span>
+										<span class="thing failure"> interr:</span>
+										<span class="failures">
+											{#each interrupteds.slice(0, 4) as interrupted, i (interrupted.id)}
 												{#if i > 0},
 												{/if}
-												<a class="sneaky" href={linkToTest(params, failure.test, params.branch)}>
-													{failure.test.title}
+												<a
+													class="sneaky failure"
+													href={linkToTest(params, interrupted.test, params.branch)}
+												>
+													{interrupted.test.title}
 												</a>
 											{/each}
 										</span>
-									</span>
+									{:else}
+										<span class="count"
+											><span class="failure">{failures.length}</span>/{dones.length}
+										</span>
+										<span class="thing failure"> failed: </span>
+										<span class="failures">
+											<span class="failure">
+												{#each failures.slice(0, 4) as failure, i (failure.id)}
+													{#if i > 0},
+													{/if}
+													<a class="sneaky" href={linkToTest(params, failure.test, params.branch)}>
+														{failure.test.title}
+													</a>
+												{/each}
+											</span>
+										</span>
+									{/if}
 								{/if}
 							</li>
 						{/each}
@@ -377,7 +414,7 @@
 
 	ul li {
 		display: grid;
-		grid-template-columns: minmax(max-content, 4ch) max-content 4ch 7ch 1fr;
+		grid-template-columns: minmax(max-content, 4ch) max-content 5ch 7ch 1fr;
 		gap: 0 0.75em;
 		overflow-x: hidden;
 		align-items: center;

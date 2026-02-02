@@ -11,7 +11,11 @@ export function aggregateTestrunOutcomes(
 	inProgress: boolean,
 	trs: (typeof testruns.$inferSelect)[]
 ): (typeof testruns.$inferSelect)['outcome'] {
-	const outcomes = new Set(trs.map((tr) => tr.outcome));
+	const outcomes = new Set(
+		trs.map((tr) =>
+			tr.outcome === null && tr.expectedStatus === 'skipped' ? 'skipped' : tr.outcome
+		)
+	);
 
 	if (outcomes.size === 1) {
 		return trs[0].outcome;
