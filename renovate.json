@@ -1,0 +1,29 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["github>gwennlbh/renovate"],
+	"prConcurrentLimit": 8,
+	"packageRules": [
+		{
+			"description": "Auto-merge updates to linters and formatters",
+			"matchDepTypes": ["devDependencies"],
+			"matchPackageNames": [
+				"eslint",
+				"@eslint/*",
+				"eslint-*",
+				"oxlint",
+				"oxlint-*",
+				"knip",
+				"prettier",
+				"prettier-*",
+				"lint-staged",
+				"svelte-check"
+			],
+			"automerge": true
+		},
+		{
+			"description": "Auto-merge patch upgrades (E2E tests should validate that nothing catastrophic happens)",
+			"matchUpdateTypes": ["patch"],
+			"automerge": true
+		}
+	]
+}
