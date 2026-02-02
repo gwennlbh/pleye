@@ -64,6 +64,14 @@ export default class Pleye {
 	#stepIndices = new Map();
 
 	/**
+	 * Set of (json-stringified) test identifiers that we intentionally skipped
+	 * (but don't have result.expectedStatus = 'skipped')
+	 * Useful to avoid counting them as interrupted tests.
+	 * @type {Set<string>}
+	 */
+	#intentionalSkips = new Set();
+
+	/**
 	 *
 	 * @param {PleyeParams} params
 	 */
@@ -208,6 +216,17 @@ export default class Pleye {
 				ignore: toArray(project.testIgnore).map(String),
 				timeoutMs: project.timeout
 			}))
+		});
+	}
+
+	/**
+	 *
+	 * @param {PW.TestError} error
+	 */
+	onError(error) {
+		void this.#sendPayload('error', {
+			githubJobId: this.#runData.githubJobId,
+			error: this.#toError(error)
 		});
 	}
 

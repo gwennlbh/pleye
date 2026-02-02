@@ -292,6 +292,7 @@ export const errors = pgTable(
 		id: serial('id').primaryKey(),
 		resultId: integer('result_id').references(() => results.id, { onDelete: 'cascade' }),
 		stepId: integer('step_id').references(() => steps.id, { onDelete: 'cascade' }),
+		runId: integer('run_id').references(() => runs.id, { onDelete: 'cascade' }), // Global errors not linked to a test
 
 		filePath: text('file_path'),
 		locationInFile: point('location_in_file'),
@@ -301,8 +302,9 @@ export const errors = pgTable(
 		value: text('value')
 	},
 	(t) => [
-		check('errors_linked_to_something', sql`not (${t.resultId} is null and ${t.stepId} is null)`),
+		check('errors_linked_to_something', sql`not (${t.resultId} is null and ${t.stepId} is null and ${t.runId} is null)`),
 		index('errors_by_result').on(t.resultId),
-		index('errors_by_step').on(t.stepId)
+		index('errors_by_step').on(t.stepId),
+		index('errors_by_run').on(t.runId)
 	]
 );
