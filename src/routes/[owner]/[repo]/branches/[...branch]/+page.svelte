@@ -350,26 +350,7 @@
 									{/if}
 								{:else if run.result === 'failed'}
 									<StatusIcon outcome="unexpected" />
-									{#if interrupteds.length === 0}
-										<span class="failure count">{interrupteds.length}/{dones.length}</span>
-										<span class="failure thing"> passed,</span>
-										<span class="failure failures">but something went wrong</span>
-									{:else if failures.length === 0}
-										<span class="count"><span class="failure">{interrupteds.length}</span>/{dones.length}</span>
-										<span class="thing failure"> interr:</span>
-										<span class="failures">
-											{#each interrupteds.slice(0, 4) as interrupted, i (interrupted.id)}
-												{#if i > 0},
-												{/if}
-												<a
-													class="sneaky failure"
-													href={linkToTest(params, interrupted.test, params.branch)}
-												>
-													{interrupted.test.title}
-												</a>
-											{/each}
-										</span>
-									{:else}
+									{#if failures.length > 0}
 										<span class="count"
 											><span class="failure">{failures.length}</span>/{dones.length}
 										</span>
@@ -385,6 +366,27 @@
 												{/each}
 											</span>
 										</span>
+									{:else if interrupteds.length === 0}
+										<span class="count"
+											><span class="failure">{interrupteds.length}</span>/{dones.length}</span
+										>
+										<span class="thing failure"> interr:</span>
+										<span class="failures">
+											{#each interrupteds.slice(0, 4) as interrupted, i (interrupted.id)}
+												{#if i > 0},
+												{/if}
+												<a
+													class="sneaky failure"
+													href={linkToTest(params, interrupted.test, params.branch)}
+												>
+													{interrupted.test.title}
+												</a>
+											{/each}
+										</span>
+									{:else}
+										<span class="failure count">{interrupteds.length}/{dones.length}</span>
+										<span class="failure thing"> passed,</span>
+										<span class="failure failures">but something went wrong</span>
 									{/if}
 								{/if}
 							</li>
@@ -431,7 +433,7 @@
 		}
 
 		&.has-progress-bar + :not(.has-progress-bar) {
-			margin-bottom: 0.5em;
+			margin-top: 0.5em;
 		}
 
 		.count,
