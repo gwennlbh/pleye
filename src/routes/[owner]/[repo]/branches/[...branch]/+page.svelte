@@ -7,10 +7,11 @@
 	import { vscodeURL } from '$lib/filepaths.js';
 	import { commitURL, userProfileURL, workflowJobURL, workflowRunURL } from '$lib/github.js';
 	import StatusIcon from '$lib/StatusIcon.svelte';
-	import { aggregateTestrunOutcomes, testrunIsOngoing } from '$lib/testruns.js';
+	import { aggregateRunResults, aggregateTestrunOutcomes, testrunIsOngoing } from '$lib/status.js';
 	import { clamp, commonPrefixAndSuffixTrimmer, smartStringCompare } from '$lib/utils.js';
 	import {
 		compareDesc as compareDatesDesc,
+		compareAsc as compareDatesAsc,
 		formatDistanceToNowStrict,
 		formatDuration,
 		intervalToDuration
@@ -21,6 +22,7 @@
 	import { expectedTestrunDuration, runsOfBranch } from './data.remote.js';
 	import { holdingKeys } from '../../../../+layout.svelte';
 	import { tick } from 'svelte';
+	import RelativeTime from '$lib/RelativeTime.svelte';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
@@ -165,19 +167,44 @@
 		{#each groupedRuns as [runId, runs] (runId)}
 			{@const { commitSha, commitTitle, commitAuthorUsername, commitAuthorName } = runs[0]}
 			{@const inProgress = runs.some((r) => r.status === 'in_progress')}
-			{@const outcome = aggregateTestrunOutcomes(
-				inProgress,
-				runs.flatMap((r) => r.testruns)
-			)}
+			{@const startedAt = new Date(Math.min(...runs.map((r) => r.startedAt.getTime())))}
+
 			{@const jobNameTrimmer = commonPrefixAndSuffixTrimmer(
 				runs.map((r) => r.githubJobName),
 				'0'
 			)}
-			{@const startedAt = new Date(Math.min(...runs.map((r) => r.startedAt.getTime())))}
-			{@const sortedRuns = runs.toSorted((a, b) =>
-				smartStringCompare(jobNameTrimmer(a.githubJobName), jobNameTrimmer(b.githubJobName))
+
+			{@const runsByJobName = Map.groupBy(runs, (r) => r.githubJobName)
+				.entries()
+				.toArray()
+				.map(
+					([name, runs]) =>
+						[name, runs.toSorted((a, b) => compareDatesAsc(a.startedAt, b.startedAt))] as const
+				)
+				.toSorted(([a], [b]) => smartStringCompare(jobNameTrimmer(a), jobNameTrimmer(b)))}
+
+			{@const outcome = aggregateRunResults(
+				runsByJobName.map(([, attempts]) => attempts.at(-1)!)
 			)}
-			<li>
+
+			{#if commitSha.startsWith('01a')}
+				{@const fck = runsByJobName.flatMap(([, attempts]) =>
+					attempts
+						.at(-1)!
+						.testruns.filter((tr) => tr.outcome !== 'flaky' && tr.outcome !== 'expected' && tr.outcome !== "skipped" && tr.expectedStatus !== "skipped")
+						.map(
+							(tr) =>
+								`${attempts.at(-1)!.githubJobId} ${tr.outcome} ${tr.test.title}`
+						)
+				)}
+				{@debug fck}
+			{/if}
+
+			<li
+				style:--job-name-length={Math.max(
+					...runs.map((r) => jobNameTrimmer(r.githubJobName).length)
+				)}
+			>
 				<details
 					open={openDetails || opened.has(runId)}
 					ontoggle={(e) => {
@@ -192,15 +219,16 @@
 				>
 					<summary
 						class={{
-							warning: outcome === 'flaky',
-							failure: outcome === 'unexpected' || (outcome === null && !inProgress),
-							subdued: outcome === 'skipped'
+							// TODO
+							// warning: outcome === 'flaky',
+							failure: outcome === 'failed' || outcome === "timedout",
+							subdued: outcome === 'interrupted'
 						}}
 					>
 						<ExternalLink sneaky url={workflowRunURL(repo, { githubRunId: runId })}
 							>#{runId}</ExternalLink
 						>
-						{formatDistanceToNowStrict(startedAt, { addSuffix: true })}
+						<RelativeTime suffix date={startedAt} />
 						<ExternalLink sneaky url={commitURL(repo, { commitSha })}
 							>{commitSha.slice(0, 7)}</ExternalLink
 						>
@@ -218,168 +246,201 @@
 					</summary>
 
 					<ul>
-						{#each sortedRuns as run (run.id)}
-							{@const currentTestrun =
-								run.status === 'in_progress'
-									? run.testruns
-											.filter(testrunIsOngoing)
-											.toSorted((a, b) => compareDatesDesc(a.startedAt, b.startedAt))
-											.at(0)
-									: undefined}
+						{#each runsByJobName as [jobName, runs] (jobName)}
+							{@const hasReruns = runs.length > 1}
+							{#if hasReruns}
+								<li class="testrun reruns-header">
+									<span class="subdued">
+										|{jobNameTrimmer(jobName)}]
+									</span>
+									<span class="subdued">
+										{runs.length} runs, latest was <RelativeTime
+											suffix
+											date={runs.at(-1)!.startedAt}
+										/>
+									</span>
+								</li>
+							{/if}
+							{#each runs as run, i (run.id)}
+								{@const currentTestrun =
+									run.status === 'in_progress'
+										? run.testruns
+												.filter(testrunIsOngoing)
+												.toSorted((a, b) => compareDatesDesc(a.startedAt, b.startedAt))
+												.at(0)
+										: undefined}
 
-							{@const dones = run.testruns.filter((tr) => !testrunIsOngoing(tr))}
-							{@const okays = dones.filter((tr) => tr.outcome !== 'unexpected')}
-							{@const interrupteds = dones.filter((tr) => tr.interrupted)}
-							{@const failures = dones.filter((tr) => tr.outcome === 'unexpected')}
-							{@const flakies = dones.filter((tr) => tr.outcome === 'flaky')}
+								{@const dones = run.testruns.filter((tr) => !testrunIsOngoing(tr))}
+								{@const okays = dones.filter((tr) => tr.outcome !== 'unexpected')}
+								{@const interrupteds = dones.filter((tr) => tr.interrupted)}
+								{@const failures = dones.filter((tr) => tr.outcome === 'unexpected')}
+								{@const flakies = dones.filter((tr) => tr.outcome === 'flaky')}
 
-							<li class="testrun" class:has-progress-bar={run.status === 'in_progress'}>
-								<span class="job-name subdued">
-									[<ExternalLink sneaky url={workflowJobURL(repo, run)} title={run.githubJobName}>
-										{jobNameTrimmer(run.githubJobName)}
-									</ExternalLink>]
-								</span>
-								{#if run.status === 'in_progress'}
-									<span class="icon">·</span>
-									<span class="failure">
-										{#if failures.length > 0}{failures.length}✘{/if}
-									</span>
-									<span class="warning">
-										{#if flakies.length > 0}{flakies.length}~{/if}
-									</span>
-									<span class="success">
-										{#if okays.length > 0}{okays.length}✓{/if}
-									</span>
-									<span class="progress">
-										{dones.length + 1}/{run.testrunsCount}
-									</span>
-									<progress max={run.testrunsCount} value={dones.length}></progress>
-									{#if currentTestrun}
-										{@const project = projects.get(currentTestrun.projectId)!}
-										{@const duration = intervalToDuration({
-											start: currentTestrun.startedAt,
-											end: now
-										})}
-
-										{#await expectedTestrunDuration({ ...currentTestrun, branch: params.branch })}
-											<span class="subdued">
-												{formatDurationShort(duration)}
-											</span>
-										{:then expectedDuration}
-											{#if durationIsLonger(duration, expectedDuration, { seconds: 2 })}
-												<span
-													class="failure"
-													title="Test is running overtime. It takes on average {formatDuration(
-														expectedDuration
-													)} on {project.name}"
-												>
-													{formatDurationShort(duration)}!
-												</span>
-											{:else}
-												{@const currently = durationToMilliseconds(duration)}
-												{@const expected = durationToMilliseconds(expectedDuration)}
-												<span
-													class="subdued"
-													title="On {project.name}, it usually runs in {formatDuration(
-														expectedDuration
-													)}"
-												>
-													{(clamp(currently / expected) * 100).toFixed(0).padStart(2, ' ')}%
-												</span>
-											{/if}
-										{:catch}
-											<span class="subdued">{formatDurationShort(duration)}</span>
-										{/await}
-										<span class="subdued">
-											{'{'}<a
-												class="sneaky"
-												title={project.name}
-												href={resolve('/[owner]/[repo]/projects/[project]', {
-													...params,
-													project: project.name
-												})}
+								<li class="testrun" class:has-progress-bar={run.status === 'in_progress'}>
+									<span class="job-name subdued" class:is-rerun={hasReruns}>
+										{#if hasReruns}
+											| <ExternalLink
+												sneaky
+												url={workflowJobURL(repo, run)}
+												title={run.githubJobName}
 											>
-												{project.abbreviation}
-											</a>{'}'}
-										</span>
-										<span class="rest">
-											<a
-												class="sneaky"
-												href={linkToTest(params, currentTestrun.test, params.branch)}
+												{i}
+											</ExternalLink>
+										{:else}
+											[<ExternalLink
+												sneaky
+												url={workflowJobURL(repo, run)}
+												title={run.githubJobName}
 											>
-												{currentTestrun.test.title}
-											</a>
+												{jobNameTrimmer(run.githubJobName)}
+											</ExternalLink>]
+										{/if}
+									</span>
+									{#if run.status === 'in_progress'}
+										<span class="icon">·</span>
+										<span class="failure">
+											{#if failures.length > 0}{failures.length}✘{/if}
 										</span>
-									{:else}
-										<span class="step-progress"></span>
-										<span class="subdued">waiting...</span>
-									{/if}
-								{:else if run.result === 'interrupted'}
-									<StatusIcon outcome={null} />
-									<span class="subdued">interrupted</span>
-								{:else if run.result === 'passed'}
-									{#if flakies.length === 0}
-										<StatusIcon outcome="expected" />
-										<span class="count">{okays.length}</span>
-										<span class="thing">passed</span>
-									{:else}
-										<StatusIcon outcome="flaky" />
-										<span class="count">
-											<span class="warning">{flakies.length}</span>/{dones.length}
+										<span class="warning">
+											{#if flakies.length > 0}{flakies.length}~{/if}
 										</span>
-										<span class="thing"> flakes: </span>
-										<span class="flakies">
-											{#each flakies as flaky, i (flaky.id)}
-												{#if i > 0},
+										<span class="success">
+											{#if okays.length > 0}{okays.length}✓{/if}
+										</span>
+										<span class="progress">
+											{dones.length + 1}/{run.testrunsCount}
+										</span>
+										<progress max={run.testrunsCount} value={dones.length}></progress>
+										{#if currentTestrun}
+											{@const project = projects.get(currentTestrun.projectId)!}
+											{@const duration = intervalToDuration({
+												start: currentTestrun.startedAt,
+												end: now
+											})}
+
+											{#await expectedTestrunDuration({ ...currentTestrun, branch: params.branch })}
+												<span class="subdued">
+													{formatDurationShort(duration)}
+												</span>
+											{:then expectedDuration}
+												{#if durationIsLonger(duration, expectedDuration, { seconds: 2 })}
+													<span
+														class="failure"
+														title="Test is running overtime. It takes on average {formatDuration(
+															expectedDuration
+														)} on {project.name}"
+													>
+														{formatDurationShort(duration)}!
+													</span>
+												{:else}
+													{@const currently = durationToMilliseconds(duration)}
+													{@const expected = durationToMilliseconds(expectedDuration)}
+													<span
+														class="subdued"
+														title="On {project.name}, it usually runs in {formatDuration(
+															expectedDuration
+														)}"
+													>
+														{(clamp(currently / expected) * 100).toFixed(0).padStart(2, ' ')}%
+													</span>
 												{/if}
-												<a class="sneaky" href={linkToTest(params, flaky.test, params.branch)}>
-													{flaky.test.title}
+											{:catch}
+												<span class="subdued">{formatDurationShort(duration)}</span>
+											{/await}
+											<span class="subdued">
+												{'{'}<a
+													class="sneaky"
+													title={project.name}
+													href={resolve('/[owner]/[repo]/projects/[project]', {
+														...params,
+														project: project.name
+													})}
+												>
+													{project.abbreviation}
+												</a>{'}'}
+											</span>
+											<span class="rest">
+												<a
+													class="sneaky"
+													href={linkToTest(params, currentTestrun.test, params.branch)}
+												>
+													{currentTestrun.test.title}
 												</a>
-											{/each}
-										</span>
-									{/if}
-								{:else if run.result === 'failed'}
-									<StatusIcon outcome="unexpected" />
-									{#if failures.length > 0}
-										<span class="count"
-											><span class="failure">{failures.length}</span>/{dones.length}
-										</span>
-										<span class="thing failure"> failed: </span>
-										<span class="failures">
-											<span class="failure">
-												{#each failures.slice(0, 4) as failure, i (failure.id)}
+											</span>
+										{:else}
+											<span class="step-progress"></span>
+											<span class="subdued">waiting...</span>
+										{/if}
+									{:else if run.result === 'interrupted'}
+										<StatusIcon outcome={null} />
+										<span class="subdued">interrupted</span>
+									{:else if run.result === 'passed'}
+										{#if flakies.length === 0}
+											<StatusIcon outcome="expected" />
+											<span class="count">{okays.length}</span>
+											<span class="thing">passed</span>
+										{:else}
+											<StatusIcon outcome="flaky" />
+											<span class="count">
+												<span class="warning">{flakies.length}</span>/{dones.length}
+											</span>
+											<span class="thing"> flakes: </span>
+											<span class="flakies">
+												{#each flakies as flaky, i (flaky.id)}
 													{#if i > 0},
 													{/if}
-													<a class="sneaky" href={linkToTest(params, failure.test, params.branch)}>
-														{failure.test.title}
+													<a class="sneaky" href={linkToTest(params, flaky.test, params.branch)}>
+														{flaky.test.title}
 													</a>
 												{/each}
 											</span>
-										</span>
-									{:else if interrupteds.length > 0}
-										<span class="count"
-											><span class="failure">{interrupteds.length}</span>/{dones.length}</span
-										>
-										<span class="thing failure"> interr:</span>
-										<span class="failures">
-											{#each interrupteds.slice(0, 4) as interrupted, i (interrupted.id)}
-												{#if i > 0},
-												{/if}
-												<a
-													class="sneaky failure"
-													href={linkToTest(params, interrupted.test, params.branch)}
-												>
-													{interrupted.test.title}
-												</a>
-											{/each}
-										</span>
-									{:else}
-										<span class="failure count">{interrupteds.length}/{dones.length}</span>
-										<span class="failure thing"> passed,</span>
-										<span class="failure failures">but something went wrong</span>
+										{/if}
+									{:else if run.result === 'failed'}
+										<StatusIcon outcome="unexpected" />
+										{#if failures.length > 0}
+											<span class="count"
+												><span class="failure">{failures.length}</span>/{dones.length}
+											</span>
+											<span class="thing failure"> failed: </span>
+											<span class="failures">
+												<span class="failure">
+													{#each failures.slice(0, 4) as failure, i (failure.id)}
+														{#if i > 0},
+														{/if}
+														<a
+															class="sneaky"
+															href={linkToTest(params, failure.test, params.branch)}
+														>
+															{failure.test.title}
+														</a>
+													{/each}
+												</span>
+											</span>
+										{:else if interrupteds.length > 0}
+											<span class="count"
+												><span class="failure">{interrupteds.length}</span>/{dones.length}</span
+											>
+											<span class="thing failure"> interr:</span>
+											<span class="failures">
+												{#each interrupteds.slice(0, 4) as interrupted, i (interrupted.id)}
+													{#if i > 0},
+													{/if}
+													<a
+														class="sneaky failure"
+														href={linkToTest(params, interrupted.test, params.branch)}
+													>
+														{interrupted.test.title}
+													</a>
+												{/each}
+											</span>
+										{:else}
+											<span class="failure count">{interrupteds.length}/{dones.length}</span>
+											<span class="failure thing"> passed,</span>
+											<span class="failure failures">but something went wrong</span>
+										{/if}
 									{/if}
-								{/if}
-							</li>
+								</li>
+							{/each}
 						{/each}
 					</ul>
 				</details>
@@ -426,9 +487,12 @@
 			margin-top: 0.5em;
 		}
 
-		.count,
-		.job-name {
+		.count {
 			text-align: right;
+		}
+
+		.job-name {
+			width: calc(var(--job-name-length) * 1ch + 2ch);
 		}
 	}
 

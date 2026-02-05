@@ -13,7 +13,7 @@
 	import { pullRequestURL } from '$lib/github.js';
 	import PullRequestState from '$lib/PullRequestState.svelte';
 	import StatusIcon from '$lib/StatusIcon.svelte';
-	import { aggregateTestrunOutcomes } from '$lib/testruns.js';
+	import { aggregateTestrunOutcomes } from '$lib/status.js';
 	import { basename, commonPrefixTrimmer } from '$lib/utils.js';
 	import { linkToTest } from './[...test]/links.js';
 	import {

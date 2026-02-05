@@ -15,6 +15,7 @@
 	import { FancyAnsi } from 'fancy-ansi';
 	import { projectsOfRepo } from '../data.remote.js';
 	import { formatDistanceToNow, formatDistanceToNowStrict } from 'date-fns';
+	import RelativeTime from '$lib/RelativeTime.svelte';
 
 	const { params, data } = $props();
 	const { test, repo, testruns: runs } = $derived(data);
@@ -142,7 +143,7 @@
 								</span>
 								<span class="committed-at">
 									{#if run.committedAt}
-										{formatDistanceToNowStrict(run.committedAt, { addSuffix: true })}
+										<RelativeTime suffix date={run.committedAt} />
 									{/if}
 								</span>
 							</span>
