@@ -15,7 +15,21 @@ export const runsOfBranch = query(
 		status: createSelectSchema(tables.runs).get('status')
 	}),
 	async (params) => {
-		const query = db
+		const interruptedResults = await db
+			.selectDistinct({ testrunId: tables.results.testrunId })
+			.from(tables.results)
+			.leftJoin(tables.testruns, eq(tables.testruns.id, tables.results.testrunId))
+			.leftJoin(tables.runs, eq(tables.runs.id, tables.testruns.runId))
+			.where(
+				and(
+					eq(tables.runs.repositoryId, params.repoId),
+					eq(tables.runs.status, params.status),
+					eq(tables.results.status, 'interrupted'),
+					eq(tables.testruns.outcome, 'skipped')
+				)
+			);
+
+		const rows = await db
 			.select()
 			.from(tables.runs)
 			.leftJoin(tables.testruns, eq(tables.testruns.runId, tables.runs.id))
@@ -36,8 +50,6 @@ export const runsOfBranch = query(
 				)
 			);
 
-		const rows = await query;
-
 		const richRuns = uniqueById(
 			rows.map((row) => ({
 				...row.runs,
@@ -47,10 +59,7 @@ export const runsOfBranch = query(
 						.map((r) => ({
 							...r.testruns!,
 							test: r.tests!,
-							results: []
-							// results: rows
-							// 	.filter((resultRow) => resultRow.testruns?.id === r.testruns!.id)
-							// 	.map((resultRow) => resultRow.results!)
+							interrupted: interruptedResults.some((ir) => ir.testrunId === r.testruns!.id)
 						}))
 				)
 			}))

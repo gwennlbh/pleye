@@ -14,6 +14,7 @@
 	import StatusIcon from '$lib/StatusIcon.svelte';
 	import { FancyAnsi } from 'fancy-ansi';
 	import { projectsOfRepo } from '../data.remote.js';
+	import { formatDistanceToNow, formatDistanceToNowStrict } from 'date-fns';
 
 	const { params, data } = $props();
 	const { test, repo, testruns: runs } = $derived(data);
@@ -139,6 +140,11 @@
 										{run.commitAuthorName}
 									{/if}
 								</span>
+								<span class="committed-at">
+									{#if run.committedAt}
+										{formatDistanceToNowStrict(run.committedAt, { addSuffix: true })}
+									{/if}
+								</span>
 							</span>
 						</summary>
 
@@ -234,7 +240,7 @@
 
 	.testrun-header {
 		display: inline-grid;
-		grid-template-columns: max-content 4ch 12ch 40vw max-content;
+		grid-template-columns: max-content 4ch 12ch 40vw max-content max-content;
 		gap: 0 0.75em;
 	}
 

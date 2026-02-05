@@ -228,18 +228,8 @@
 									: undefined}
 
 							{@const dones = run.testruns.filter((tr) => !testrunIsOngoing(tr))}
-							{@const okays = dones.filter(
-								(tr) =>
-									tr.outcome !== 'unexpected' &&
-									!(
-										tr.outcome === 'skipped' &&
-										tr.results.some((res) => res.status === 'interrupted')
-									)
-							)}
-							{@const interrupteds = dones.filter(
-								(tr) =>
-									tr.outcome === 'skipped' && tr.results.some((res) => res.status === 'interrupted')
-							)}
+							{@const okays = dones.filter((tr) => tr.outcome !== 'unexpected')}
+							{@const interrupteds = dones.filter((tr) => tr.interrupted)}
 							{@const failures = dones.filter((tr) => tr.outcome === 'unexpected')}
 							{@const flakies = dones.filter((tr) => tr.outcome === 'flaky')}
 
@@ -366,7 +356,7 @@
 												{/each}
 											</span>
 										</span>
-									{:else if interrupteds.length === 0}
+									{:else if interrupteds.length > 0}
 										<span class="count"
 											><span class="failure">{interrupteds.length}</span>/{dones.length}</span
 										>
