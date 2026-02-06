@@ -4,7 +4,16 @@ import { error, json } from '@sveltejs/kit';
 import { type } from 'arktype';
 import { and, eq } from 'drizzle-orm';
 
-const actionsToListenTo = ['closed', 'converted_to_draft', 'read_for_review', 'opened', 'reopened'];
+const actionsToListenTo = [
+	'closed',
+	'converted_to_draft',
+	'read_for_review',
+	'opened',
+	'reopened',
+	'edited',
+	'auto_merge_disabled',
+	'auto_merge_enabled'
+];
 
 export const PullRequestEvent = type({
 	action: 'string',
