@@ -14,6 +14,14 @@ export const PullRequestEvent = type({
 	pull_request: {
 		number: 'number',
 		merged: 'boolean',
+		auto_merge: [
+			'null',
+			'|',
+			{
+				commit_title: 'string | null',
+				merge_method: "'merge' | 'squash' | 'rebase'"
+			}
+		],
 		draft: 'boolean',
 		state: type.enumerated('open', 'closed'),
 		title: 'string',
@@ -59,9 +67,11 @@ export async function onPullRequest(payload: unknown) {
 		pullRequestTitle: data.pull_request.title,
 		pullRequestState:
 			data.pull_request.state === 'open'
-				? data.pull_request.draft
-					? 'draft'
-					: 'open'
+				? data.pull_request.auto_merge !== null
+					? 'automerge'
+					: data.pull_request.draft
+						? 'draft'
+						: 'open'
 				: data.pull_request.merged
 					? 'merged'
 					: 'closed'

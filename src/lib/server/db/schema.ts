@@ -82,7 +82,7 @@ export const branches = pgTable(
 		pullRequestNumber: integer('pull_request_number'),
 		pullRequestTitle: text('pull_request_title'),
 		pullRequestState: text('pull_request_state', {
-			enum: ['open', 'closed', 'merged', 'draft'] as const
+			enum: ['automerge', 'open', 'closed', 'merged', 'draft'] as const
 		})
 	},
 	(t) => [
