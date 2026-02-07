@@ -153,7 +153,7 @@ export const branchesOfRepo = query(type('number'), async (repoId) => {
 				eq(tables.branches.repositoryId, repoId),
 				or(
 					isNull(tables.branches.pullRequestNumber),
-					inArray(tables.branches.pullRequestState, ['open', 'draft'])
+					inArray(tables.branches.pullRequestState, ['open', 'draft', 'automerge'])
 				)
 			)
 		);
