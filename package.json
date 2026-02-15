@@ -36,7 +36,7 @@
 		"drizzle-orm": "^0.45.1",
 		"eslint": "^10.0.0",
 		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-svelte": "^3.14.0",
+		"eslint-plugin-svelte": "^3.15.0",
 		"globals": "^17.3.0",
 		"nanoid": "^5.1.6",
 		"octokit": "^5.0.5",
