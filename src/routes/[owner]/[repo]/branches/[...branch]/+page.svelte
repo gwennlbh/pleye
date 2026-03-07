@@ -23,6 +23,7 @@
 	import { holdingKeys } from '../../../../+layout.svelte';
 	import { tick } from 'svelte';
 	import RelativeTime from '$lib/RelativeTime.svelte';
+	import { gradientedColor } from '$lib/color.js';
 
 	const { params } = $props();
 	const repo = $derived(await repository(params));
@@ -183,19 +184,20 @@
 				)
 				.toSorted(([a], [b]) => smartStringCompare(jobNameTrimmer(a), jobNameTrimmer(b)))}
 
-			{@const outcome = aggregateRunResults(
-				runsByJobName.map(([, attempts]) => attempts.at(-1)!)
-			)}
+			{@const outcome = aggregateRunResults(runsByJobName.map(([, attempts]) => attempts.at(-1)!))}
 
 			{#if commitSha.startsWith('01a')}
 				{@const fck = runsByJobName.flatMap(([, attempts]) =>
 					attempts
 						.at(-1)!
-						.testruns.filter((tr) => tr.outcome !== 'flaky' && tr.outcome !== 'expected' && tr.outcome !== "skipped" && tr.expectedStatus !== "skipped")
-						.map(
+						.testruns.filter(
 							(tr) =>
-								`${attempts.at(-1)!.githubJobId} ${tr.outcome} ${tr.test.title}`
+								tr.outcome !== 'flaky' &&
+								tr.outcome !== 'expected' &&
+								tr.outcome !== 'skipped' &&
+								tr.expectedStatus !== 'skipped'
 						)
+						.map((tr) => `${attempts.at(-1)!.githubJobId} ${tr.outcome} ${tr.test.title}`)
 				)}
 				{@debug fck}
 			{/if}
@@ -221,7 +223,7 @@
 						class={{
 							// TODO
 							// warning: outcome === 'flaky',
-							failure: outcome === 'failed' || outcome === "timedout",
+							failure: outcome === 'failed' || outcome === 'timedout',
 							subdued: outcome === 'interrupted'
 						}}
 					>
@@ -323,9 +325,18 @@
 													{formatDurationShort(duration)}
 												</span>
 											{:then expectedDuration}
+												{@const currently = durationToMilliseconds(duration)}
+												{@const expected = durationToMilliseconds(expectedDuration)}
 												{#if durationIsLonger(duration, expectedDuration, { seconds: 2 })}
 													<span
 														class="failure"
+														style:color={gradientedColor(
+															1,
+															2,
+															currently / expected,
+															'subdued',
+															'failure'
+														)}
 														title="Test is running overtime. It takes on average {formatDuration(
 															expectedDuration
 														)} on {project.name}"
@@ -333,8 +344,6 @@
 														{formatDurationShort(duration)}!
 													</span>
 												{:else}
-													{@const currently = durationToMilliseconds(duration)}
-													{@const expected = durationToMilliseconds(expectedDuration)}
 													<span
 														class="subdued"
 														title="On {project.name}, it usually runs in {formatDuration(
