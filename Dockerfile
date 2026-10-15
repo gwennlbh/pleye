@@ -19,4 +19,4 @@ ENV VERSION=$VERSION
 
 EXPOSE 3000
 
-CMD ["bun", "run", "build/index.js"]
+ENTRYPOINT [ "sh", "-c", "bun run db:migrate && bun run build/index.js" ]
