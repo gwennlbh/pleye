@@ -19,7 +19,7 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import { linkToTest } from '../../[...test]/links.js';
 	import { projectsOfRepo, repository, testsWithLatestTestrun } from '../../data.remote.js';
-	import { expectedTestrunDuration, runsOfBranch } from './data.remote.js';
+	import { expectedTestrunDuration, markRunDone, runsOfBranch } from './data.remote.js';
 	import { holdingKeys } from '../../../../+layout.svelte';
 	import { tick } from 'svelte';
 	import RelativeTime from '$lib/RelativeTime.svelte';
@@ -60,6 +60,21 @@
 	});
 
 	const opened = new SvelteSet<number>();
+
+	const markingDone = new SvelteSet<number>();
+	async function markDone(githubRunId: number) {
+		if (markingDone.has(githubRunId)) return;
+		markingDone.add(githubRunId);
+
+		try {
+			await markRunDone({ repoId: repo.id, githubRunId }).updates(
+				runsOfBranch({ ...params, repoId: repo.id, status: 'in_progress' }),
+				runsOfBranch({ ...params, repoId: repo.id, status: 'completed' })
+			);
+		} finally {
+			markingDone.delete(githubRunId);
+		}
+	}
 
 	let now = $state(new Date());
 	$effect(() => {
@@ -245,6 +260,19 @@
 								{commitAuthorName}
 							{/if}
 						</span>
+						{#if inProgress}
+							<button
+								class="mark-done"
+								disabled={markingDone.has(runId)}
+								title="Mark this run as done (use when pleye missed the webhook events)"
+								onclick={(e) => {
+									e.stopPropagation();
+									void markDone(runId);
+								}}
+							>
+								{markingDone.has(runId) ? '…' : 'mark done'}
+							</button>
+						{/if}
 					</summary>
 
 					<ul>
@@ -468,10 +496,31 @@
 
 	summary {
 		display: grid;
-		grid-template-columns: max-content 16ch 7ch 800px 1fr;
+		grid-template-columns: max-content 16ch 7ch 800px 1fr max-content;
 		gap: 0 0.75em;
 		align-items: center;
 		width: 100%;
+	}
+
+	.mark-done {
+		font: inherit;
+		color: var(--subdued);
+		background: none;
+		border: 1px solid var(--subdued);
+		border-radius: 0.25em;
+		padding: 0.1em 0.5em;
+		cursor: pointer;
+		white-space: nowrap;
+
+		&:hover:not(:disabled) {
+			color: var(--accent);
+			border-color: var(--accent);
+		}
+
+		&:disabled {
+			opacity: 0.5;
+			cursor: default;
+		}
 	}
 
 	ul li {
