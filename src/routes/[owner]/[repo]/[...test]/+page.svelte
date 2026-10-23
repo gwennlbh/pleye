@@ -32,6 +32,10 @@
 		return out;
 	}
 
+	function hasConsoleOutput(result: { stderr: string; stdout: string }) {
+		return result.stderr.trim() !== '' || result.stdout.trim() !== '';
+	}
+
 	function linkifyFilepaths(rootDirectory: string | null, input: string) {
 		if (!rootDirectory) return input;
 
@@ -149,9 +153,9 @@
 							</span>
 						</summary>
 
-						{#if results.some((r) => r.errors.length > 0)}
+						{#if results.some((r) => r.errors.length > 0 || hasConsoleOutput(r))}
 							<ul class="results">
-								{#each results.toSorted((a, b) => a.retry - b.retry) as { errors, traceViewerUrl, retry, id, status } (id)}
+								{#each results.toSorted((a, b) => a.retry - b.retry) as { errors, stderr, stdout, traceViewerUrl, retry, id, status } (id)}
 									<li class="result" class:no-errors={errors.length === 0}>
 										<header>
 											<StatusIcon {status} />
@@ -186,6 +190,22 @@
 												</li>
 											{/each}
 										</ul>
+
+										{#if stderr.trim() !== '' || stdout.trim() !== ''}
+											<details class="console-output">
+												<summary> Console output </summary>
+												{#if stderr.trim() !== ''}
+													<p class="stderr">
+														{@html linkifyFilepaths(run.baseDirectory, ansiToHtml(stderr))}
+													</p>
+												{/if}
+												{#if stdout.trim() !== ''}
+													<p class="stdout">
+														{@html linkifyFilepaths(run.baseDirectory, ansiToHtml(stdout))}
+													</p>
+												{/if}
+											</details>
+										{/if}
 									</li>
 								{/each}
 							</ul>
@@ -230,6 +250,28 @@
 		overflow-x: auto;
 		text-wrap: nowrap;
 		margin-bottom: 0.5em;
+	}
+
+	.console-output {
+		margin-top: 0.5em;
+		max-width: 800px;
+
+		summary {
+			display: inline;
+			cursor: pointer;
+			color: var(--subdued);
+		}
+
+		.stderr,
+		.stdout {
+			margin: 0.5em 0 0;
+			padding: 1.5em;
+			background: var(--muted);
+			border-radius: 0.5em;
+			font-size: 0.9em;
+			overflow-x: auto;
+			text-wrap: nowrap;
+		}
 	}
 
 	summary {
