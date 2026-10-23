@@ -1,4 +1,5 @@
-import { query } from '$app/server';
+import { command, query, requested } from '$app/server';
+import { error } from '@sveltejs/kit';
 import { parseDuration } from '$lib/durations';
 import { db } from '$lib/server/db';
 import * as tables from '$lib/server/db/schema';
@@ -147,5 +148,55 @@ export const testsWithLatestTestrunOnBranch = query(
 			...test,
 			testrun: latestTestruns.find((tr) => tr?.testId === test.id)
 		}));
+	}
+);
+
+/**
+ * Manually mark a stuck workflow run (a group of `runs` sharing a `githubRunId`)
+ * as completed. Used when pleye fails to receive the GitHub webhook events that
+ * would normally transition the runs from `in_progress` to `completed`.
+ *
+ * Each still-incomplete run is flipped to `completed` with `completedAt` set to
+ * now, and its `result` is derived from the testrun outcomes that were recorded
+ * (a run with no recorded outcomes is treated as `interrupted`).
+ */
+export const markRunDone = command(
+	type({
+		repoId: 'number',
+		githubRunId: 'number'
+	}),
+	async ({ repoId, githubRunId }) => {
+		const groupRuns = await db.query.runs.findMany({
+			where: and(eq(tables.runs.repositoryId, repoId), eq(tables.runs.githubRunId, githubRunId))
+		});
+
+		if (groupRuns.length === 0) {
+			error(404, `Run with GitHub Run ID ${githubRunId} not found.`);
+		}
+
+		const now = new Date();
+
+		for (const run of groupRuns) {
+			if (run.status === 'completed') continue;
+
+			const runTestruns = await db.query.testruns.findMany({
+				where: eq(tables.testruns.runId, run.id)
+			});
+
+			const outcomes = runTestruns.map((tr) => tr.outcome);
+			const result = outcomes.includes('unexpected')
+				? 'failed'
+				: outcomes.every((o) => o === null)
+					? 'interrupted'
+					: 'passed';
+
+			await db
+				.update(tables.runs)
+				.set({ status: 'completed', completedAt: now, result })
+				.where(eq(tables.runs.id, run.id));
+		}
+
+		// Refresh the branch's run lists so the run moves from "Ongoing" to "Finished"
+		await requested(runsOfBranch, 2).refreshAll();
 	}
 );
